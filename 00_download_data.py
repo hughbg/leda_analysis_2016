@@ -19,6 +19,7 @@ print("Downloading calibration data...")
 os.system("wget %s/cal_data.zip" % ZENODO_URL)
 print("unzipping...")
 os.system("unzip -o cal_data.zip")
+os.system("rm cal_data.zip")
 
 if not os.path.exists("data"):
     print("Creating data directory...")
