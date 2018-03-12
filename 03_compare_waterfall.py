@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+# 03_compare_waterfall.py
+
+Compare waterfall plots across antennas (subtract average & plot)
+
+"""
 import seaborn as sns
 import tables as tb
 from skymodel import *

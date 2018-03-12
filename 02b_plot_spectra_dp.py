@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-# 03_plot_spectra_dp.py
+# 02b_plot_spectra_dp.py
 
 Plot spectra for single antenna in dual panels:
 1) Spectra at LST where power is minimal
