@@ -28,34 +28,34 @@ This is made a bit easier if you set a variable in your terminal like so:
 
 ### 01_plot_waterfall.py
 
-![01-thumb](example_img/01.png)
+![01-thumb](example_img/01.png =800x)
 
 ### 02_plot_spectra.py
 
-![02-thumb](example_img/02.png)
+![02-thumb](example_img/02.png =800x)
 
 ### 02b_plot_spectra_dp.py
 
-![02b-thumb](example_img/02b.png)
+![02b-thumb](example_img/02b.png =800x)
 
 ### 03_compare_waterfall.py
 
-![03-thumb](example_img/03.png)
+![03-thumb](example_img/03.png =800x)
 
 ### 04_compare_spectra.py
 
-![04-thumb](example_img/04.png)
+![04-thumb](example_img/04.png =800x)
 
 ### 05_plot_residuals.py
 
-![05-thumb](example_img/05.png)
+![05-thumb](example_img/05.png =800x)
 
 ### 06_plot_rfi.py
 
 ![06-thumb](example_img/06.png)
 ![06-thumb](example_img/06_2.png)
 
-### 07_fit_alphta.py
+### 07_fit_alpha.py
 
 ![07-thumb](example_img/07.png)
 
