@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+"""
+# 07_fit_alpha.py
+
+Fit sky power law (frequency^alpha) to the data over 10 MHz chunks,
+starting at 40-50 MHz and ending at 70-80 MHz, then plot alpha as
+a function of frequency.
+
+NOTE: Also see 10_fit_alpha2.py
+
+"""
 import matplotlib as mpl
 import seaborn as sns
 import tables as tb
@@ -8,7 +18,6 @@ from leda_cal.dpflgr import *
 from leda_cal.useful import fit_poly, closest, trim, fourier_fit, poly_fit, rebin
 
 from lmfit import minimize, Parameters, report_fit
-
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
 

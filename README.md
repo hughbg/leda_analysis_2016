@@ -62,3 +62,11 @@ This is made a bit easier if you set a variable in your terminal like so:
 ### 08_plot_fg.py
 
 ![08-thumb](example_img/08.png)
+
+### 09_fourier_fitting.py
+
+![09-thumb](example_img/09.png)
+
+### 10_fit_alpha2.py
+
+![10-thumb](example_img/10.png)
