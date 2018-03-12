@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+# 14_output_to_hibayes.py
+
+Outputs data to freqs.txt, spectrum.txt and spec_errs.txt for input into hibayes package
+"""
 import matplotlib as mpl
 import seaborn as sns
 import tables as tb
