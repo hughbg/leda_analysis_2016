@@ -5,6 +5,7 @@ import ephem
 from datetime import datetime
 utcfromtimestamp = datetime.utcfromtimestamp
 from analog import *
+from useful import fourier_fit, poly_fit
 
 
 def closest(xarr, val):
@@ -38,7 +39,7 @@ def compute_F(ra, rl):
     F = np.sqrt((1 - mag2(rl))) / (1 - ra*rl)
     return F
 
-def compute_G(rl):
+def compute_H_lna(rl):
     G = 1 - mag2(rl)
     return G
 
@@ -46,14 +47,62 @@ def compute_GAV(ra, rl):
     G_AV = (1 - np.abs(ra)**2) / np.abs(1 - rl*ra)**2 * (1 - np.abs(rl)**2) 
     return G_AV
 
-def compute_T_sky(ra, rl, T_3p):
+def compute_T_sky(ra, rl, T_3p, nw=0):
+    """ Compute T_sky from T_3p calibrated spectra
+    
+    Args:
+        ra (np.array): return loss of antenna
+        rl (np.array): return loss of LNA
+        nw (float): magnitude of noise wave
+        T_3p (np.array): 3-state calibrated spectra (pre-VNA correction)
+    """
+    
+    # Compute VNA cal factors
+    H_lna   = compute_H_lna(rl)
+    H_ant   = (1 - mag2(ra))
     F = compute_F(ra, rl)
+    F_mag2  = mag2(F)
+    
+    # Fit models to them
+    Fmag2_f  = fourier_fit(F_mag2, 0, 21)
+    H_ant_f  = poly_fit(np.arange(H_ant.size), H_ant, 5)
+    H_ant_f2 = fourier_fit(H_ant - H_ant_f, 0, 21)
+    H_ant_f += H_ant_f2
+    H_lna_f  = fourier_fit(H_lna, 0, 21)
+    
+    # Apply cal
+    T_sky = (T_3p - nw) * H_lna / (H_ant * F_mag2) 
+    return T_sky
+
+def compute_noisewave(ant_id='a252y'):
+    vna_cal    = hkl.load('cal_data/vna_calibration.hkl')
+    
+    ant_id = 'a252x'
+    ra = vna_cal[ant_id]["ra"]
+    rl = vna_cal[ant_id]["rl"]
+    f  = vna_cal["f"]
+    
+    switch_s21 = hkl.load("switch_s21.hkl")
+    ra *= switch_s21
+    
+    F0 = compute_F(ra, rl)
     G = compute_G(rl)
     
-    G_AV = compute_GAV(ra, rl)
+    noisewave = hkl.load("noisewave.hkl")
+    T0 = noisewave[ant_id]['T0']
+    Tu = noisewave[ant_id]['Tu']
+    Tc = noisewave[ant_id]['Tc']
+    Ts = noisewave[ant_id]['Ts']
     
-    T_sky = T_3p * G / ((1 - mag2(ra)) * mag2(F)) 
-    return T_sky
+    RA  = np.abs(ra)
+    RA2 = RA**2 
+    F2  = np.abs(F0)**2
+    F   = np.abs(F0)
+    PHI = np.angle(ra * F0)
+    
+    T_noise = T0 + Tu*RA2*F2 + RA*F*(Ts*np.sin(PHI) + Tc*np.cos(PHI))
+    
+    return T_noise
 
 def apply_3ss_cal(ant_data, ant_id):
     T_rx_data = hkl.load('cal_data/rx_temperature_calibration.hkl')
@@ -72,14 +121,15 @@ def apply_vna_cal(T_3p, ant_id):
     balun_loss = hkl.load('cal_data/balun_loss.hkl')
     vna_cal    = hkl.load('cal_data/vna_calibration.hkl')
     
-    
     ra = vna_cal[ant_id]["ra"][:-1]
     rl = vna_cal[ant_id]["rl"][:-1]
     L  = 10**(-balun_loss[ant_id] / 20.0)
     
     T_3p = T_3p[:, :2290]
     L = L[:2290]
-    T_sky_meas = compute_T_sky(ra, rl, T_3p)
+    
+    nw = compute_noisewave()[:2290]
+    T_sky_meas = compute_T_sky(ra, rl, T_3p, nw)
     
     T_sky_meas_corr = (T_sky_meas - 290 * (1 - L)) / L
     
