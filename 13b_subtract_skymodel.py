@@ -19,7 +19,7 @@ from leda_cal.dpflgr import *
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
 
-F_START, F_STOP = 50, 80
+F_START, F_STOP = 60, 82
 
 def quicklook(filename):
     h5 = tb.open_file(filename)
