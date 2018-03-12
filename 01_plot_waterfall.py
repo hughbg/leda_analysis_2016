@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+# 01_plot_waterfall.py
+
+Plot data as calibrated waterfall plot.
+
+"""
 import seaborn as sns
 import tables as tb
 from leda_cal.skymodel import *
