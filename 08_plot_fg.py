@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+# 08_plot_fg.py
+
+Plot the calibration coefficients from Bowman et al (2012), F and G.
+
+These coefficients are used when applying VNA calibration.
+
+"""
 import matplotlib as mpl
 import seaborn as sns
 import tables as tb
@@ -13,7 +21,7 @@ sns.set_context("paper",font_scale=1.5)
 
 
 
-def quicklook(filename):
+def quicklook():
     
     balun_loss = hkl.load('cal_data/balun_loss.hkl')
     vna_cal    = hkl.load('cal_data/vna_calibration.hkl')
@@ -40,8 +48,6 @@ def quicklook(filename):
         plt.xticks([40, 45, 50, 55, 60, 65, 70, 75, 80, 85], 
                    ["", "", "", "", "", "", "", "", "", ""])
 
-
-
     
     for ii in (1,2,3):
         plt.subplot(3,1,ii)
@@ -57,12 +63,5 @@ def quicklook(filename):
     plt.show()
 
 if __name__ == "__main__":
-    
-    import sys
-    try:
-        filename = sys.argv[1]
-    except:
-        print "USAGE: ./quicklook.py filename_of_hdf5_observation"
-        exit()
-    
-    quicklook(filename)
+
+    quicklook()
