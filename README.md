@@ -28,27 +28,27 @@ This is made a bit easier if you set a variable in your terminal like so:
 
 ### 01_plot_waterfall.py
 
-![01-thumb](example_img/01.png =800x)
+![01-thumb](example_img/01.png)
 
 ### 02_plot_spectra.py
 
-![02-thumb](example_img/02.png =800x)
+![02-thumb](example_img/02.png)
 
 ### 02b_plot_spectra_dp.py
 
-![02b-thumb](example_img/02b.png =800x)
+![02b-thumb](example_img/02b.png)
 
 ### 03_compare_waterfall.py
 
-![03-thumb](example_img/03.png =800x)
+![03-thumb](example_img/03.png)
 
 ### 04_compare_spectra.py
 
-![04-thumb](example_img/04.png =800x)
+![04-thumb](example_img/04.png)
 
 ### 05_plot_residuals.py
 
-![05-thumb](example_img/05.png =800x)
+![05-thumb](example_img/05.png)
 
 ### 06_plot_rfi.py
 
@@ -70,3 +70,15 @@ This is made a bit easier if you set a variable in your terminal like so:
 ### 10_fit_alpha2.py
 
 ![10-thumb](example_img/10.png)
+
+### 11_plot_nw.py
+
+![11-thumb](example_img/11.png)
+
+### 12_skymodel_compare.py
+
+![12-thumb](example_img/12.png)
+
+### 13b_subtract_skymodel.py
+
+![13-thumb](example_img/13b.png)
