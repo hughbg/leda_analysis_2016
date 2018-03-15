@@ -13,13 +13,13 @@ from leda_cal.leda_cal import *
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
 
-def quicklook(filename):
+def quicklook(filename, pol):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
     
-    ant_ids = ['252A', '254A', '255A']
+    ant_ids = ['252'+pol, '254'+pol, '255'+pol]
     pol_id  = 'y'
       
     print("Plotting...")
@@ -78,7 +78,12 @@ if __name__ == "__main__":
     try:
         filename = sys.argv[1]
     except:
-        print "USAGE: ./quicklook.py filename_of_hdf5_observation"
+        print "USAGE: ./quicklook.py filename_of_hdf5_observation [pol]"
         exit()
+
+    try:
+      pol = sys.argv[2]
+    except:
+      pol = 'A'
     
-    quicklook(filename)
+    quicklook(filename, pol)
