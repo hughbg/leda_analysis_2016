@@ -7,7 +7,7 @@ Compare waterfall plots across antennas (subtract average & plot)
 """
 import seaborn as sns
 import tables as tb
-from skymodel import *
+from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
@@ -71,7 +71,7 @@ def quicklook(filename):
     
     #plt.tight_layout()
     plt.show()
-
+    exit()	# I get an error if it goes further
     plt.xlabel("Frequency [MHz]")
 
     plt.ylabel("LST [hr]")
