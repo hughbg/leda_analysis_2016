@@ -5,6 +5,7 @@
 Plot data as calibrated waterfall plot.
 
 """
+import os
 import seaborn as sns
 import tables as tb
 from leda_cal.skymodel import *
@@ -13,7 +14,11 @@ from leda_cal.leda_cal import *
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
 
-def quicklook(filename, pol):
+ovro_location = ('37.2397808', '-118.2816819', 1183.4839)
+ovro = ephem.Observer(); (ovro.lat, ovro.lon, ovro.elev) = ovro_location
+sun = ephem.Sun()
+
+def quicklook(filename, pol, save, dump):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
@@ -42,11 +47,27 @@ def quicklook(filename, pol):
         
         T_ant[key] = T_flagged
         
+	if dump: np.save(os.path.basename(filename)[:-3]+"_"+pol, T_flagged)
+        max_alt = 0
+        pad_length = 70
+        padding = np.zeros((T_flagged.shape[0], pad_length))
+        for i, d in enumerate(utc_stamps):
+          ovro.date = d
+          sun.compute(ovro)
+          padding[i, :] = sun.alt
+          if sun.alt > 0 and sun.alt > max_alt: max_alt = abs(sun.alt)
+
+        for i in range(len(utc_stamps)):
+          padding[i, :] = 1000+((padding[i, 0]+max_alt)/(2*max_alt))*(10000-1000)
+          #print d, lst_stamps[i], ovro.sidereal_time(), float(sun.alt)*180/np.pi, 1000+((sun.alt+max_alt)/(2*max_alt))*(10000-1000)
+          
+        T_flagged = np.concatenate((T_flagged, padding), axis=1)
+        new_x_high = xlims[1]+pad_length*(xlims[1]-xlims[0])/T_flagged.shape[1]
         im = plt.imshow(T_flagged, # / np.median(xx, axis=0), 
                    cmap='viridis', aspect='auto',
                    interpolation='nearest',
                    clim=(1000, 10000),
-                   extent=(xlims[0], xlims[1], ylims[1], ylims[0])
+                   extent=(xlims[0], new_x_high, ylims[1], ylims[0])
                    )
         plt.title(ant_ids[ii])
         plt.xlabel("Frequency [MHz]")
@@ -68,22 +89,36 @@ def quicklook(filename, pol):
     cbar.set_label("Temperature [K]")
     
     #plt.tight_layout()
-    plt.show()
+    
+    if save:
+      plt.savefig(os.path.basename(filename)[:-3]+"_"+pol+".png")
+    else: 
+      plt.show()
     
     
 
 if __name__ == "__main__":
-    
-    import sys
-    try:
-        filename = sys.argv[1]
-    except:
-        print "USAGE: ./quicklook.py filename_of_hdf5_observation [pol]"
-        exit()
+    import optparse, sys
 
-    try:
-      pol = sys.argv[2]
-    except:
-      pol = 'A'
+    usage = '%prog [opts] filename_of_hdf5_observation'
+    o = optparse.OptionParser()
+    o.set_usage(usage)
+    o.set_description(__doc__)
+    o.add_option('--pol', dest='pol', default='A',
+      help='Polarization A or B. Default: A')
+    o.add_option('--dump', dest='dump', action='store_true', default=False,
+      help='Dump the data to a file, with filename the same as the h5 but npy extension. Default: False')
+    o.add_option('--save', dest='save', action='store_true', default=False,
+      help='Save the plot to an image file, with filename the same as the h5 but png extension. Default: False')
+    opts, args = o.parse_args(sys.argv[1:])
     
-    quicklook(filename, pol)
+    if len(args) != 1:
+      o.print_help()
+      exit(1)
+    else: filename = args[0]
+    if opts.pol not in [ "A", "B" ]:
+      print "Invalid pol"
+      o.print_help()
+      exit(1)
+
+    quicklook(filename, opts.pol, opts.save, opts.dump)

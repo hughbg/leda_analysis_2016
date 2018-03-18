@@ -10,15 +10,13 @@ for f in `ls $path_to_files/*.h5`
 do 
   fout=`basename $f`
   echo "<p>$fout</p>" >> specs.html
-  for pol in A B
-  do
-    if python 02_plot_spectra.py $f $pol
-    then
-      fout=`echo $f | sed s/\.h5/\_${pol}.png/`
-      fout=`basename $fout`
-      echo "<img src=spec_${fout}><br>" >> specs.html
-    else echo "<p>$f $pol Failed</p>" >> specs.html
-    fi
-  done
+  if python 02_plot_spectra.py $f --save
+  then
+    fout=`echo $f | sed s/\.h5/\.png/`
+    fout=`basename $fout`
+    echo "<img src=spec_${fout}><br>" >> specs.html
+  else echo "<p>$f Failed</p>" >> specs.html
+  fi
+  
   echo "<hr color=red>" >> specs.html
 done

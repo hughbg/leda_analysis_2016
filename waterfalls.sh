@@ -12,7 +12,7 @@ do
   echo "<p>$fout</p>" >> waterfalls.html
   for pol in A B
   do
-    if python 01_plot_waterfall.py $f $pol
+    if python 01_plot_waterfall.py $f --pol $pol --save
     then
       fout=`echo $f | sed s/\.h5/\_${pol}.png/`
       fout=`basename $fout`
