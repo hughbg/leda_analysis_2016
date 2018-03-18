@@ -47,7 +47,7 @@ def quicklook(filename, pol, save, dump):
         
         T_ant[key] = T_flagged
         
-	if dump: np.save(os.path.basename(filename)[:-3]+"_"+pol, T_flagged)
+	if dump: np.save(os.path.basename(filename)[:-3]+"_"+key, T_flagged)
         max_alt = 0
         pad_length = 70
         padding = np.zeros((T_flagged.shape[0], pad_length))
@@ -70,7 +70,7 @@ def quicklook(filename, pol, save, dump):
                    extent=(xlims[0], new_x_high, ylims[1], ylims[0])
                    )
         plt.title(ant_ids[ii])
-        plt.xlabel("Frequency [MHz]")
+ 	plt.xlabel("Frequency [MHz]")
         #ax.yaxis_date()
         #ax.yaxis.set_major_formatter(hfmt)
         #
