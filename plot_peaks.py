@@ -19,11 +19,14 @@ def quicklook(filename, save):
 
     T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
-    
+
     print T_ant.keys()
     
     ant_ids = ['252A', '254A', '255A', '252B', '254B', '255B'] # Added 252B, why was it missing? HG
-    pol_id  = 'y'
+    mmax = 0
+    for ant in ant_ids:
+      tmax = np.percentile(T_ant[ant], 99.95) 
+      if tmax  > mmax: mmax = mmax = tmax
       
     print("Plotting...")
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -37,26 +40,26 @@ def quicklook(filename, save):
     print ant_ids[2], mid, sl
     
     plt.subplot(2,1,1)
-    plt.plot(f_leda, np.median(T_ant[ant_ids[0]][mid-sl:mid+sl], axis=0), label=ant_ids[0])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[1]][mid-sl:mid+sl], axis=0), label=ant_ids[1])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[2]][mid-sl:mid+sl], axis=0), label=ant_ids[2])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[0]], axis=0), label=ant_ids[0])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[1]], axis=0), label=ant_ids[1])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[2]], axis=0), label=ant_ids[2])
     plt.legend(frameon=False)
     plt.ylabel("Temperature [K]")
     plt.xlim(40, 85)
     plt.minorticks_on()
-    plt.ylim(500, 7000)
+    plt.ylim(500, mmax)
     
     plt.subplot(2,1,2)
     plt.plot(0, 0)
-    plt.plot(f_leda, np.median(T_ant[ant_ids[3]][mid-sl:mid+sl], axis=0), label=ant_ids[3])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[4]][mid-sl:mid+sl], axis=0), label=ant_ids[4])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[5]][mid-sl:mid+sl], axis=0), label=ant_ids[5])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[3]], axis=0), label=ant_ids[3])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[4]], axis=0), label=ant_ids[4])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[4]], axis=0), label=ant_ids[5])
 
     plt.legend(frameon=False)
     
     plt.xlim(40, 85)
     plt.minorticks_on()
-    plt.ylim(500, 7000)
+    plt.ylim(500, mmax)
     
     
     plt.xlabel("Frequency [MHz]")
