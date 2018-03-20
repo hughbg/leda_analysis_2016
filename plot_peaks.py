@@ -76,8 +76,8 @@ def quicklook(filename, save, flag, noshow):
     plt.savefig("figures/compare-spectra.pdf")
     
     if save:
-      if flag: plt.savefig("peaks_"+os.path.basename(filename)[:-3]+"_"+pol+"_"+"flagged.png")
-      else: plt.savefig("peaks_"+os.path.basename(filename)[:-3]+"_"+pol+".png")
+      if flag: plt.savefig("peaks_"+os.path.basename(filename)[:-3]+"_"+"flagged.png")
+      else: plt.savefig("peaks_"+os.path.basename(filename)[:-3]+".png")
     if not noshow:
       plt.show()
 

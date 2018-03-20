@@ -52,7 +52,9 @@ def quicklook(filename, pol, save, dump, flag, noshow):
              max_frac_f=0.5, max_frac_t=0.5)
 
         
-	if dump: hickle.dump(T_flagged, os.path.basename(filename)[:-3]+"_"+key+".hkl")
+	if dump: 
+          if flag: hickle.dump(T_flagged, os.path.basename(filename)[:-3]+"_"+key+"flagged.hkl")
+        else: hickle.dump(T_flagged, os.path.basename(filename)[:-3]+"_"+key+".hkl")
 
         max_alt = 0
         pad_length = 70

@@ -14,7 +14,7 @@ from leda_cal.skymodel import *
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
 
-def quicklook(filename, save):
+def quicklook(filename, save, noshow):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
@@ -68,8 +68,8 @@ def quicklook(filename, save):
     
     if save:
       plt.savefig("spec_"+os.path.basename(filename)[:-3]+".png")
-    else:
-      plt.show()
+
+    if not noshow: plt.show()
 
 if __name__ == "__main__":
     import optparse, sys
@@ -80,6 +80,8 @@ if __name__ == "__main__":
     o.set_description(__doc__)
     o.add_option('--save', dest='save', action='store_true', default=False,
       help='Save plot to a file. Default: False')
+    o.add_option('--noshow', dest='noshow', action='store_true', default=False,
+      help="Don't display the plot on the screen. Default: False")
     opts, args = o.parse_args(sys.argv[1:])
 
     if len(args) != 1:
@@ -87,5 +89,5 @@ if __name__ == "__main__":
       exit(1)
     else: filename = args[0]
 
-    quicklook(filename, opts.save)
+    quicklook(filename, opts.save, opts.noshow)
  
