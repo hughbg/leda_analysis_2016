@@ -2,7 +2,8 @@
 """
 # plot_raw.py
 
-Plot the raw data by channel for 1 step (the first in the file), unless specified
+Plot the raw data by channel for 1 time step 
+(the first in the file), unless specified
 """
 import matplotlib as mpl
 import os
@@ -77,7 +78,7 @@ if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage(usage)
     o.set_description(__doc__)
-    o.add_option('--time', dest='time', default=0,
+    o.add_option('--time', dest='time', default=0, type="int",
       help='The time step in the file. Default: 0')
     o.add_option('--save', dest='save', action='store_true', default=False,
       help="Save the plot to an image file, with filename the same as the h5 but png extension. Default: False.")
