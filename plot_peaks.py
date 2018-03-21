@@ -88,8 +88,6 @@ if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage(usage)
     o.set_description(__doc__)
-    o.add_option('--pol', dest='pol', default='A',
-      help='Polarization A or B. Default: A')
     o.add_option('--flag', dest='flag', action='store_true', default=False,
       help='Apply flagging. Default: False')
     o.add_option('--save', dest='save', action='store_true', default=False,
