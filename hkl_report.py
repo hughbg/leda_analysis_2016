@@ -14,6 +14,7 @@ def report_hkl(data):
   print "\nStart time", data["utcs"][0]
   print "Options", data["options"]
 
+  # Sometimes you have to relpace masked data with a value
   plt.imshow(np.ma.filled(data["252A"], 0), clim=(1000,10000), aspect="auto")
   plt.show()
 
