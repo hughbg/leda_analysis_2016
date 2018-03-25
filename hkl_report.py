@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import hickle, sys, numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,5 +20,8 @@ def report_hkl(data):
   plt.imshow(np.ma.filled(data["252A"], 0), clim=(1000,10000), aspect="auto")
   plt.show()
 
+if len(sys.argv) == 1:
+  print "Need 1 hkl file as argument"
+  exit(1)
 d = load_hkl(sys.argv[1])
 report_hkl(d)
