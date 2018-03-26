@@ -10,21 +10,30 @@ import seaborn as sns
 import tables as tb
 from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
+from leda_cal.dpflgr import *
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
 
-def quicklook(filename, save, noshow):
+def quicklook(filename, save, flag, noshow):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
     
-    print T_ant.keys()
-    
     ant_ids = ['252A', '254A', '255A', '252B', '254B', '255B'] # Added 252B, why was it missing? HG
-    pol_id  = 'y'
-      
+    mmax = 0
+    for ant in ant_ids:
+      if flag:
+        T_flagged = rfi_flag(T_ant[ant], thr_f=0.2, thr_t=0.2, rho=1.5,
+             bp_window_f=16, bp_window_t=16,
+             max_frac_f=0.5, max_frac_t=0.5)
+        T_ant[ant] = np.ma.filled(T_flagged, 0)
+
+      if flag: tmax = np.max(T_ant[ant])
+      else: tmax = np.percentile(T_ant[ant], 99.95)
+      if tmax  > mmax: mmax = tmax  
+
     print("Plotting...")
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -37,26 +46,26 @@ def quicklook(filename, save, noshow):
     print ant_ids[2], mid, sl
     
     plt.subplot(2,1,1)
-    plt.plot(f_leda, np.median(T_ant[ant_ids[0]][mid-sl:mid+sl], axis=0), label=ant_ids[0])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[1]][mid-sl:mid+sl], axis=0), label=ant_ids[1])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[2]][mid-sl:mid+sl], axis=0), label=ant_ids[2])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[0]], axis=0), label=ant_ids[0])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[1]], axis=0), label=ant_ids[1])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[2]], axis=0), label=ant_ids[2])
     plt.legend(frameon=False)
     plt.ylabel("Temperature [K]")
-    plt.xlim(40, 85)
+    plt.xlim(30, 85)
     plt.minorticks_on()
-    plt.ylim(500, 7000)
+    plt.ylim(500, mmax)
     
     plt.subplot(2,1,2)
     plt.plot(0, 0)
-    plt.plot(f_leda, np.median(T_ant[ant_ids[3]][mid-sl:mid+sl], axis=0), label=ant_ids[3])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[4]][mid-sl:mid+sl], axis=0), label=ant_ids[4])
-    plt.plot(f_leda, np.median(T_ant[ant_ids[5]][mid-sl:mid+sl], axis=0), label=ant_ids[5])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[3]], axis=0), label=ant_ids[3])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[4]], axis=0), label=ant_ids[4])
+    plt.plot(f_leda, np.max(T_ant[ant_ids[4]], axis=0), label=ant_ids[5])
 
     plt.legend(frameon=False)
     
-    plt.xlim(40, 85)
+    plt.xlim(30, 85)
     plt.minorticks_on()
-    plt.ylim(500, 7000)
+    plt.ylim(500, mmax)
     
     
     plt.xlabel("Frequency [MHz]")
@@ -67,9 +76,10 @@ def quicklook(filename, save, noshow):
     plt.savefig("figures/compare-spectra.pdf")
     
     if save:
-      plt.savefig("spec_"+os.path.basename(filename)[:-3]+".png")
-
-    if not noshow: plt.show()
+      if flag: plt.savefig("peaks_"+os.path.basename(filename)[:-3]+"_"+"flagged.png")
+      else: plt.savefig("peaks_"+os.path.basename(filename)[:-3]+".png")
+    if not noshow:
+      plt.show()
 
 if __name__ == "__main__":
     import optparse, sys
@@ -78,16 +88,20 @@ if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage(usage)
     o.set_description(__doc__)
+    o.add_option('--flag', dest='flag', action='store_true', default=False,
+      help='Apply flagging. Default: False')
     o.add_option('--save', dest='save', action='store_true', default=False,
-      help='Save plot to a file. Default: False')
+      help="Save the plot to an image file, with filename the same as the h5 but png extension. Default: False.")
     o.add_option('--noshow', dest='noshow', action='store_true', default=False,
-      help="Don't display the plot on the screen. Default: False")
+      help="Don't display the plot on screen. Useful for batch runs. Default: False.")
+
     opts, args = o.parse_args(sys.argv[1:])
+
 
     if len(args) != 1:
       o.print_help()
       exit(1)
     else: filename = args[0]
 
-    quicklook(filename, opts.save, opts.noshow)
+    quicklook(filename, opts.save, opts.flag, opts.noshow)
  

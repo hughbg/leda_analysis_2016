@@ -9,7 +9,7 @@ to see fractional differences
 
 import seaborn as sns
 import tables as tb
-from skymodel import *
+from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import simple_flag
 sns.set_style('ticks')

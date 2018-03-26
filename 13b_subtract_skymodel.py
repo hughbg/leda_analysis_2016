@@ -41,7 +41,7 @@ def quicklook(filename):
     
     
     import hickle as hkl
-    gsm = hkl.load("gsm-spec-lst11.hkl")
+    gsm = hkl.load("cal_data/gsm-spec-lst11.hkl")
     sl  = 250    
     n_poly = 5
     n_chan = 42

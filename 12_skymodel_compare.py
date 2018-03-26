@@ -45,7 +45,7 @@ def quicklook(filename):
     
     
     import hickle as hkl
-    gsm = hkl.load("gsm-spec-lst11.hkl")
+    gsm = hkl.load("cal_data/gsm-spec-lst11.hkl")
     plt.plot(gsm["f"], gsm["T_ew"], c='#333333', ls='dashed')
     
     d = T_flagged[mid-sl:mid+sl].mean(axis=0)

@@ -82,13 +82,13 @@ def compute_noisewave(ant_id='a252y'):
     rl = vna_cal[ant_id]["rl"]
     f  = vna_cal["f"]
     
-    switch_s21 = hkl.load("switch_s21.hkl")
+    switch_s21 = hkl.load("cal_data/switch_s21.hkl")
     ra *= switch_s21
     
     F0 = compute_F(ra, rl)
     G = compute_G(rl)
     
-    noisewave = hkl.load("noisewave.hkl")
+    noisewave = hkl.load("cal_data/noisewave.hkl")
     T0 = noisewave[ant_id]['T0']
     Tu = noisewave[ant_id]['Tu']
     Tc = noisewave[ant_id]['Tc']

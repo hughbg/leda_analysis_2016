@@ -6,6 +6,8 @@ Leda data analysis scripts, February 2016
 ## Install requirements
 
 ```
+pip install tables
+pip install ephem
 pip install seaborn
 pip install lmfit
 pip install hickle==2.0.5
