@@ -111,7 +111,7 @@ if __name__ == "__main__":
     o.add_option('--flag', dest='flag', action='store_true', default=False,
       help='Apply flagging. Default: False')
     o.add_option('--no_show', dest='no_show', action='store_true', default=False,
-      help="Don't display the plot on screen using DS9. A FITS file is always created with the same name as the h5 file, but antenna with appended. This can be loaded into another FITS viewer if you don't have DS9. Default: False.")
+      help="Don't display the plot on screen using DS9. A FITS file is always created with the same name as the h5 file, but with antenna appended. This can be loaded into another FITS viewer if you don't have DS9. Default: False.")
 
     opts, args = o.parse_args(sys.argv[1:])
 
