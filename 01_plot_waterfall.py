@@ -99,14 +99,15 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
 
           T_flagged = T_ant[ant]
           if not all_lsts:  T_flagged = np.delete(T_flagged, unusable_lsts, axis=0)
- 
+
+          print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
+
           if flag:
             T_flagged = rfi_flag(T_flagged, thr_f=0.2, thr_t=0.2, rho=1.5,
                bp_window_f=16, bp_window_t=16,
                max_frac_f=0.5, max_frac_t=0.5)
+            print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
 
-
-          
           if dump: dump_data[ant] = T_flagged
           if flag: 
             total = T_flagged.shape[0]*T_flagged.shape[1]
