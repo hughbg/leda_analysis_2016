@@ -8,6 +8,7 @@ import numpy as np
 import pylab as plt
 from scipy.signal import wiener
 from numpy import fft
+from scipy.stats import skew, kurtosis
 
 def smooth(list, degree=5):
     """ Apply a Gaussian smoothing function """
@@ -150,3 +151,115 @@ def plot_waterfall(d, freqs, lsts, t_unit='hr', f_unit='MHz',
                extent=(freqs[0], freqs[-1], lsts[0], lsts[-1]))
     plt.xlabel("Frequency [%s]" % f_unit)
     plt.ylabel("Time [%s]" % t_unit)
+
+
+##### New stuff, stats and uncertainties
+
+import bottleneck as bn
+from uncertainties import unumpy
+
+def make_masked(data):
+  # Turn into a masked array if it isn't. Makes the rest easier.
+  try:
+    mask = data.mask
+  except AttributeError:
+    data = np.ma.array(data)
+    data.mask = np.full((data.shape[0], data.shape[1]), False)
+  return data
+
+def pad(data, bp_window_f, bp_window_t):
+  # Intelligently pad data to take account of the border of Nans the bottleneck creates
+  # Need to unpad later. Unpad with array[bp_window_t:, bp_window_f:]
+
+  # Problem with demeaning is that there is a border that becomes equal to Nan afterwards. 
+  # I want to avoid that so I'm going to pad the original array, replicating the edges out ito the pad.
+  new_data = np.ma.zeros((data.shape[0]+bp_window_t, data.shape[1]+bp_window_f))
+  new_data[bp_window_t:, bp_window_f:] = data
+  new_data.mask[bp_window_t:, bp_window_f:] = data.mask
+  new_data[:bp_window_t, :data.shape[1]] = data[:bp_window_t, :]	# Replicate edge data into the pad
+  new_data[:data.shape[0], :bp_window_f] = data[:, :bp_window_f]
+  new_data.mask[:bp_window_t, :data.shape[1]] = data.mask[:bp_window_t, :]
+  new_data.mask[:data.shape[0], :bp_window_f] = data.mask[:, :bp_window_f]
+
+  return new_data
+
+
+def add_uncertainties(data, bp_window_t=8):
+
+  rms = np.zeros(data.shape[1])
+
+  new_data = pad(make_masked(data), 0, bp_window_t)
+
+  for i in range(new_data.shape[1]):
+    flat = bn.move_nanmean(new_data[:, i], bp_window_t, axis=0)
+    flat = new_data[:, i]-flat
+    flat = flat[bp_window_t:]		# Now we drop the border and go back to the original size
+    rms[i] = float(np.ma.std(flat))		# Will be Nan if whole channel masked
+    
+
+  return rms
+
+  
+
+import scipy.optimize
+def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for flattening
+
+  def num2str(x):
+    return ( "%.3f" % x )
+
+  # Define model function to be used to fit to the data
+  def gauss(x, *p):
+    A, mu, sigma = p
+    return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+
+  def gauss_fit(in_data):
+
+    # p0 is the initial guess for the fitting coefficients (A, mu and sigma above)
+    p0 = [np.max(in_data), np.argmax(in_data), np.std(in_data)]
+
+    coeff, var_matrix = scipy.optimize.curve_fit(gauss, np.array(range(len(in_data))), in_data, p0=p0)
+
+    return coeff, np.sqrt(np.mean(np.diag(var_matrix)))
+
+  data = make_masked(data)
+  new_data = pad(data, bp_window_f, bp_window_t)
+
+  # Now can use the demeaning
+  flat = bn.move_nanmean(new_data, bp_window_t, axis=0)
+  flat = bn.move_nanmean(flat, bp_window_f, axis=1)
+  flat = new_data-flat
+  flat = flat[bp_window_t:, bp_window_f:]		# Now we drop the border and go back to the original size
+  flat = np.ravel(flat)
+  flat = flat[flat.mask==False]
+  flat -= np.mean(flat)
+
+  # Print stats. Some are from the data, others from the flattened data
+  print "Gaussian statistics, from de-meaned data:"
+  print "  Min", num2str(np.min(flat)), "Max", num2str(np.max(flat)), "Std", num2str(np.std(flat)),
+  print "Skewness", num2str(skew(flat)), "Kurtosis", num2str(kurtosis(flat, fisher=True))
+  print "Statistics from data, not de-meaned:"
+  print "  Min", num2str(np.ma.min(data)), "Max", num2str(np.ma.max(data)), "Std", num2str(np.std(data))
+  total = data.shape[0]*data.shape[1]
+  num_in = np.ma.MaskedArray.count(data)
+  print "Flags:", ( "%.3f%%" % (100*(total-num_in)/total) ), "flagged (num:"+str(total-num_in)+")" 
+
+
+  # Get histogram for Gauss fit
+  histogram = np.zeros((5000, 2))
+  hist = np.histogram(flat, 5000)
+  histogram[:, 0] = hist[1][:5000]
+  histogram[:, 1] = hist[0]
+  np.savetxt("hits_data.dat", histogram)
+
+  # See how Gaussian it is
+  try:
+    coeff, err = gauss_fit(histogram[:, 1])
+    print "Gauss fit error", ( "%.3f" % err ), "(hoping for < 5)"
+    histogram[:, 1] = np.array([gauss(i, coeff[0], coeff[1], coeff[2]) for i in range(len(histogram))])
+    np.savetxt("hist_fit.dat", histogram)
+
+  except: print "Gauss fit failed"
+
+
+    
+

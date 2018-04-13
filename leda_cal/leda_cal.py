@@ -138,7 +138,7 @@ def apply_vna_cal(T_3p, ant_id):
 def apply_calibration(h5):
     """ Apply 3SS calibration (convert to temperature) and apply VNA calibration """
     
-    (latitude, longitude, elevation) = ('37.2', '-118.2', 1222)
+    (latitude, longitude, elevation) = ('37.2397808', '-118.2816819', 1183.4839)
 
     ov = ephem.Observer()
     ov.lon = longitude
@@ -180,6 +180,7 @@ def apply_calibration(h5):
     a252y = a252y[sort_idx]
     a254y = a254y[sort_idx]
     a255y = a255y[sort_idx]    
+    utc_stamps = [ utc_stamps[sort_idx[i]] for i in range(len(sort_idx)) ]
 
     f_leda = hkl.load('cal_data/vna_calibration.hkl')["f"]
     if f_leda.shape[0] != a252x.shape[1]:

@@ -15,6 +15,7 @@ import scipy.signal
 from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
+from leda_cal.useful import add_uncertainties
 
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
@@ -108,7 +109,10 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
                max_frac_f=0.5, max_frac_t=0.5)
             print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
 
-          if dump: dump_data[ant] = T_flagged
+          if dump: 
+            dump_data[ant] = T_flagged
+            dump_data[ant+"_rms"] = add_uncertainties(T_flagged)
+          
           if flag: 
             total = T_flagged.shape[0]*T_flagged.shape[1]
             num_in = np.ma.MaskedArray.count(T_flagged)

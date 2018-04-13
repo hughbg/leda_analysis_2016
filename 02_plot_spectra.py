@@ -44,7 +44,7 @@ def quicklook(filename, save, noshow):
     plt.ylabel("Temperature [K]")
     plt.xlim(40, 85)
     plt.minorticks_on()
-    plt.ylim(500, 7000)
+    #plt.ylim(500, 7000)
     
     plt.subplot(2,1,2)
     plt.plot(0, 0)
@@ -56,7 +56,7 @@ def quicklook(filename, save, noshow):
     
     plt.xlim(40, 85)
     plt.minorticks_on()
-    plt.ylim(500, 7000)
+    #plt.ylim(500, 7000)
     
     
     plt.xlabel("Frequency [MHz]")

@@ -241,10 +241,39 @@ def flag_window(data, window_f, window_t):
     data.mask[:, -1 * window_f:] = True
     return data.mask
 
+def clip(data, bp_window_f=8, bp_window_t=8):
+
+  # Get the standard deviation of the high (by frequency) third of the data, for clipping
+  cut = data.shape[1]/3
+  chunk = data[:, data.shape[1]-cut:]
+  chunk = bn.move_nanmean(chunk, bp_window_t, axis=0)
+  chunk = bn.move_nanmean(chunk, bp_window_f, axis=1)
+  chunk = data[:, data.shape[1]-cut:]-chunk
+  chunk = chunk[bp_window_t:, bp_window_f:]		# Because these edge values are nan now
+  chunk = np.ravel(chunk)
+  if np.ma.is_masked(chunk): chunk = chunk[chunk.mask==False]
+
+  # Clipping values
+  dmin = -4*np.std(chunk)
+  dmax = 4*np.std(chunk); 
+
+  # Mask the data. Have to flatten the data to find where to mask it
+  flat = bn.move_nanmean(data, bp_window_t, axis=0)
+  flat = bn.move_nanmean(flat, bp_window_f, axis=1)
+  flat = data-flat;
+  m = np.ma.mean(flat[bp_window_t:, bp_window_f:])			
+  flat[:bp_window_t, :] = m		# Because these edge values are now Nan due to move_nanmean
+  flat[:, :bp_window_f] = m
+  flat -= m
+
+  data.mask = np.logical_or(data.mask, flat>dmax)
+  data.mask = np.logical_or(data.mask, flat<dmin)
+
+
 @check_mask
 def rfi_flag(data, thr_f, thr_t=None, rho=1.5,
              bp_window_f=64, bp_window_t=64, 
-             max_frac_f=0.5, max_frac_t=0.5, scales=None):
+             max_frac_f=0.5, max_frac_t=0.5, scales=None, freqs=None):
     """ RFI Flagging routine for LEDA data
     
     Centered around a sum-threshold method, this method:
@@ -268,7 +297,7 @@ def rfi_flag(data, thr_f, thr_t=None, rho=1.5,
                         for a given integration    
     """
     
-    
+    dtv_frequencies = [ 54.31, 60.31, 66.31, 76.31, 82.31 ]
     
     bpass = estimate_bandpass(data, window_f=bp_window_f, window_t=bp_window_t)
     to_flag = data / bpass
@@ -292,7 +321,22 @@ def rfi_flag(data, thr_f, thr_t=None, rho=1.5,
     to_flag.mask = flag_window(to_flag, window_f=bp_window_f, window_t=bp_window_t)
     
     data.mask = to_flag.mask
-    
+
+  
+    clip(data, bp_window_f,bp_window_t)	# sigma clipping
+
+    # DTV 
+    if freqs is not None:
+      for freq in dtv_frequencies:
+        channel = len(freqs[freqs<freq])-1	# channel of the nearest freq
+        channels = [ channel-1, channel, channel+1 ]
+ 
+        for i in range(data.shape[0]):
+          if np.ma.is_masked(data[i, channels]): 
+            data.mask[i, channel-13:channel+250-13 ] = True	# The start of the TV subband is 13 channels back and 250 wide
+        
+
+
     return data
 
     
