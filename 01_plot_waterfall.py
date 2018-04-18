@@ -112,6 +112,10 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
           if dump: 
             dump_data[ant] = T_flagged
             dump_data[ant+"_rms"] = add_uncertainties(T_flagged)
+	    av = np.ma.average(T_flagged,axis=0)
+	    weighted = av/dump_data[ant+"_rms"]**2
+            dump_data[ant+"_weighted"]=weighted       
+            
           
           if flag: 
             total = T_flagged.shape[0]*T_flagged.shape[1]
