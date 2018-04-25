@@ -43,6 +43,10 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
     #plt.suptitle(h5.filename)
     
     lst_stamps = T_ant['lst']
+    if len(lst_stamps) == 0:
+      print "No LSTS in file"
+      exit(1)
+
     # Report discontinuities in time
     for i in range(1,len(lst_stamps)):
       if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
@@ -74,6 +78,9 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
        padding = np.delete(padding, unusable_lsts, axis=0)
        lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
        utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
+       if len(lst_stamps) == 0:
+         print "No LSTs available at night time (use --all_lsts to see all)"
+         exit(1)
        ylims = ( lst_stamps[0], lst_stamps[-1] )
        print len(lst_stamps), "usable LSTs"
     else: print "Using all LSTs"

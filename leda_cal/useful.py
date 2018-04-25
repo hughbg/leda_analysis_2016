@@ -156,7 +156,6 @@ def plot_waterfall(d, freqs, lsts, t_unit='hr', f_unit='MHz',
 ##### New stuff, stats and uncertainties
 
 import bottleneck as bn
-from uncertainties import unumpy
 
 def make_masked(data):
   # Turn into a masked array if it isn't. Makes the rest easier.
