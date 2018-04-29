@@ -136,7 +136,7 @@ def apply_vna_cal(T_3p, ant_id):
     
     return T_sky_meas_corr
 
-def apply_calibration(h5):
+def apply_calibration(h5, apply_3ss=True, apply_vna=True):
     """ Apply 3SS calibration (convert to temperature) and apply VNA calibration """
     
     (latitude, longitude, elevation) = ('37.2397808', '-118.2816819', 1183.4839)
@@ -156,21 +156,30 @@ def apply_calibration(h5):
         lst_stamps[ii] = ov.sidereal_time() * 12.0 / np.pi
         utc_stamps.append(utc)
     
-    print("Applying 3-state switching calibration")
-    a252x = apply_3ss_cal(h5.root.data.cols.ant252_x[:], 'a252x')
-    a254x = apply_3ss_cal(h5.root.data.cols.ant254_x[:], 'a254x')
-    a255x = apply_3ss_cal(h5.root.data.cols.ant255_x[:], 'a255x')
-    a252y = apply_3ss_cal(h5.root.data.cols.ant252_y[:], 'a252y')
-    a254y = apply_3ss_cal(h5.root.data.cols.ant254_y[:], 'a254y')
-    a255y = apply_3ss_cal(h5.root.data.cols.ant255_y[:], 'a255y')
+    if apply_3ss:
+        print("Applying 3-state switching calibration")
+        a252x = apply_3ss_cal(h5.root.data.cols.ant252_x[:], 'a252x')
+        a254x = apply_3ss_cal(h5.root.data.cols.ant254_x[:], 'a254x')
+        a255x = apply_3ss_cal(h5.root.data.cols.ant255_x[:], 'a255x')
+        a252y = apply_3ss_cal(h5.root.data.cols.ant252_y[:], 'a252y')
+        a254y = apply_3ss_cal(h5.root.data.cols.ant254_y[:], 'a254y')
+        a255y = apply_3ss_cal(h5.root.data.cols.ant255_y[:], 'a255y')
+    else:
+        a252x = h5.root.data.cols.ant252_x[:]
+        a254x = h5.root.data.cols.ant254_x[:]
+        a255x = h5.root.data.cols.ant255_x[:]
+        a252y = h5.root.data.cols.ant252_y[:]
+        a254y = h5.root.data.cols.ant254_y[:]
+        a255y = h5.root.data.cols.ant255_y[:]
     
-    print("Applying VNA calibration")
-    a252x = apply_vna_cal(a252x, 'a252x')
-    a254x = apply_vna_cal(a254x, 'a254x')
-    a255x = apply_vna_cal(a255x, 'a255x')
-    a252y = apply_vna_cal(a252y, 'a252y')
-    a254y = apply_vna_cal(a254y, 'a254y')
-    a255y = apply_vna_cal(a255y, 'a255y')
+    if apply_vna:
+        print("Applying VNA calibration")
+        a252x = apply_vna_cal(a252x, 'a252x')
+        a254x = apply_vna_cal(a254x, 'a254x')
+        a255x = apply_vna_cal(a255x, 'a255x')
+        a252y = apply_vna_cal(a252y, 'a252y')
+        a254y = apply_vna_cal(a254y, 'a254y')
+        a255y = apply_vna_cal(a255y, 'a255y')
 
     print("Sorting by LST")
     sort_idx = lst_stamps.argsort()
