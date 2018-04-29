@@ -109,6 +109,7 @@ def apply_3ss_cal(ant_data, ant_id):
     try:
         T_h = T_rx_data[ant_id]['T_hot'][:-1]
         T_c = T_rx_data[ant_id]['T_cold'][:-1]    
+        ant_data = ant_data[:, :len(T_c)]
         T_ant = (T_h - T_c) * ant_data + T_c
     except ValueError:
         T_h = T_rx_data[ant_id]['T_hot']
