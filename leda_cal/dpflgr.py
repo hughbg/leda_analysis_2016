@@ -241,6 +241,16 @@ def flag_window(data, window_f, window_t):
     data.mask[:, -1 * window_f:] = True
     return data.mask
 
+def clip1(data, bp_window_f=8, bp_window_t=8):
+  limit = 4
+  for i in range(data.shape[1]):
+    flat = bn.move_nanmean(data[:, i], bp_window_t)
+    flat = data[:, i]-flat			# this will also insert the mask
+    std = np.std(flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))]); 
+    clip_mask = np.logical_or(flat < -limit*std, limit*std < flat) 
+    data.mask[:,i] = np.logical_or(data.mask[:,i], clip_mask)
+
+  
 def clip(data, bp_window_f=8, bp_window_t=8):
 
   # Get the standard deviation of the high (by frequency) third of the data, for clipping
@@ -323,7 +333,7 @@ def rfi_flag(data, thr_f, thr_t=None, rho=1.5,
     data.mask = to_flag.mask
 
   
-    clip(data, bp_window_f,bp_window_t)	# sigma clipping
+    clip1(data, bp_window_f,bp_window_t)	# sigma clipping
 
     # DTV 
     if freqs is not None:

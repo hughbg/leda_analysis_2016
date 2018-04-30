@@ -157,7 +157,7 @@ def plot_waterfall(d, freqs, lsts, t_unit='hr', f_unit='MHz',
 
 import bottleneck as bn
 
-def make_masked(data):
+def ensure_mask(data):
   # Turn into a masked array if it isn't. Makes the rest easier.
   try:
     mask = data.mask
@@ -171,7 +171,7 @@ def pad(data, bp_window_f, bp_window_t):
   # Need to unpad later. Unpad with array[bp_window_t:, bp_window_f:]
 
   # Problem with demeaning is that there is a border that becomes equal to Nan afterwards. 
-  # I want to avoid that so I'm going to pad the original array, replicating the edges out ito the pad.
+  # I want to avoid that so I'm going to pad the original array, replicating the edges out into the pad.
   new_data = np.ma.zeros((data.shape[0]+bp_window_t, data.shape[1]+bp_window_f))
   new_data[bp_window_t:, bp_window_f:] = data
   new_data.mask[bp_window_t:, bp_window_f:] = data.mask
@@ -185,17 +185,16 @@ def pad(data, bp_window_f, bp_window_t):
 
 def add_uncertainties(data, bp_window_t=8):
 
+  data = ensure_mask(data)
   rms = np.zeros(data.shape[1])
 
-  new_data = pad(make_masked(data), 0, bp_window_t)
-
-  for i in range(new_data.shape[1]):
-    flat = bn.move_nanmean(new_data[:, i], bp_window_t, axis=0)
-    flat = new_data[:, i]-flat
-    flat = flat[bp_window_t:]		# Now we drop the border and go back to the original size
-    rms[i] = float(np.ma.std(flat))		# Will be Nan if whole channel masked
+  for i in range(data.shape[1]):
+    flat = bn.move_nanmean(data[:, i], bp_window_t, axis=0)
+    flat = data[:, i]-flat
+    flat.mask = data.mask[:, i]
+    flat = flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))]
+    rms[i] = float(np.std(flat))		# Will be Nan if whole channel masked
     
-
   return rms
 
   
@@ -220,16 +219,15 @@ def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for fl
 
     return coeff, np.sqrt(np.mean(np.diag(var_matrix)))
 
-  data = make_masked(data)
-  new_data = pad(data, bp_window_f, bp_window_t)
+  data = ensure_mask(data)
 
   # Now can use the demeaning
-  flat = bn.move_nanmean(new_data, bp_window_t, axis=0)
+  flat = bn.move_nanmean(data, bp_window_t, axis=0)
   flat = bn.move_nanmean(flat, bp_window_f, axis=1)
-  flat = new_data-flat
-  flat = flat[bp_window_t:, bp_window_f:]		# Now we drop the border and go back to the original size
-  flat = np.ravel(flat)
-  flat = flat[flat.mask==False]
+  flat = data-flat
+  flat.mask = data.mask
+  flat = np.ma.ravel(flat)
+  flat = flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))]
   flat -= np.mean(flat)
 
   # Print stats. Some are from the data, others from the flattened data
@@ -237,7 +235,7 @@ def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for fl
   print "  Min", num2str(np.min(flat)), "Max", num2str(np.max(flat)), "Std", num2str(np.std(flat)),
   print "Skewness", num2str(skew(flat)), "Kurtosis", num2str(kurtosis(flat, fisher=True))
   print "Statistics from data, not de-meaned:"
-  print "  Min", num2str(np.ma.min(data)), "Max", num2str(np.ma.max(data)), "Std", num2str(np.std(data))
+  print "  Min", num2str(np.ma.min(data)), "Max", num2str(np.ma.max(data)), "Std", num2str(np.ma.std(data))
   total = data.shape[0]*data.shape[1]
   num_in = np.ma.MaskedArray.count(data)
   print "Flags:", ( "%.3f%%" % (100*(total-num_in)/total) ), "flagged (num:"+str(total-num_in)+")" 
@@ -248,7 +246,7 @@ def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for fl
   hist = np.histogram(flat, 5000)
   histogram[:, 0] = hist[1][:5000]
   histogram[:, 1] = hist[0]
-  np.savetxt("hits_data.dat", histogram)
+  np.savetxt("hist_data.dat", histogram)
 
   # See how Gaussian it is
   try:

@@ -29,6 +29,13 @@ def mag2(x):
     """
     return np.abs(x)**2
 
+def extend(a, length):
+    val = a[-1]
+    num = length-len(a)
+    x = np.append(a, np.zeros(num))
+    x[-num:] = val
+    return x
+
 def interp_cplx(x_new, x_orig, d_orig):
     re = np.interp(x_new, x_orig, np.real(d_orig))
     im = np.interp(x_new, x_orig, np.imag(d_orig))
@@ -71,6 +78,11 @@ def compute_T_sky(ra, rl, T_3p, nw=0):
     H_lna_f  = fourier_fit(H_lna, 0, 21)
     
     # Apply cal
+    H_lna = extend(H_lna, T_3p.shape[1])
+    H_ant = extend(H_ant, T_3p.shape[1])
+    nw = extend(nw, T_3p.shape[1])
+    F_mag2 = extend(F_mag2,  T_3p.shape[1])
+
     T_sky = (T_3p - nw) * H_lna / (H_ant * F_mag2) 
     return T_sky
 
@@ -109,7 +121,8 @@ def apply_3ss_cal(ant_data, ant_id):
     try:
         T_h = T_rx_data[ant_id]['T_hot'][:-1]
         T_c = T_rx_data[ant_id]['T_cold'][:-1]    
-        ant_data = ant_data[:, :len(T_c)]
+        T_c = extend(T_c, ant_data.shape[1])
+        T_h = extend(T_h, ant_data.shape[1])
         T_ant = (T_h - T_c) * ant_data + T_c
     except ValueError:
         T_h = T_rx_data[ant_id]['T_hot']
@@ -126,12 +139,13 @@ def apply_vna_cal(T_3p, ant_id):
     rl = vna_cal[ant_id]["rl"][:-1]
     L  = 10**(-balun_loss[ant_id] / 20.0)
     
-    T_3p = T_3p[:, :2290]
-    L = L[:2290]
+    #T_3p = T_3p[:, :2290]
+    #L = L[:2290]
     
-    nw = compute_noisewave()[:2290]
+    nw = compute_noisewave()
     T_sky_meas = compute_T_sky(ra, rl, T_3p, nw)
     
+    L = extend(L, T_sky_meas.shape[1])
     T_sky_meas_corr = (T_sky_meas - 290 * (1 - L)) / L
     
     return T_sky_meas_corr
@@ -171,7 +185,6 @@ def apply_calibration(h5, apply_3ss=True, apply_vna=True):
         a252y = h5.root.data.cols.ant252_y[:]
         a254y = h5.root.data.cols.ant254_y[:]
         a255y = h5.root.data.cols.ant255_y[:]
-    
     if apply_vna:
         print("Applying VNA calibration")
         a252x = apply_vna_cal(a252x, 'a252x')
@@ -180,7 +193,7 @@ def apply_calibration(h5, apply_3ss=True, apply_vna=True):
         a252y = apply_vna_cal(a252y, 'a252y')
         a254y = apply_vna_cal(a254y, 'a254y')
         a255y = apply_vna_cal(a255y, 'a255y')
-
+    
     print("Sorting by LST")
     sort_idx = lst_stamps.argsort()
     lst_stamps = lst_stamps[sort_idx]
@@ -193,9 +206,15 @@ def apply_calibration(h5, apply_3ss=True, apply_vna=True):
     utc_stamps = [ utc_stamps[sort_idx[i]] for i in range(len(sort_idx)) ]
 
     f_leda = hkl.load('cal_data/vna_calibration.hkl')["f"]
-    if f_leda.shape[0] != a252x.shape[1]:
+    if f_leda.shape[0] > a252x.shape[1]:
         f_leda = f_leda[:-1]
-
+    elif f_leda.shape[0] < a252x.shape[1]:
+        last_index = len(f_leda)-1
+        last_val = f_leda[-1]
+        f_leda = extend(f_leda, a252x.shape[1])
+        for i in range(last_index+1, len(f_leda)):
+          f_leda[i] = last_val+(i-last_index)*.024
+        
     ants = {'lst': lst_stamps, 'utc' : utc_stamps, 'f' : f_leda,
             '252A': a252x, '252B': a252y,
             '254A': a254x, '254B': a254y,
