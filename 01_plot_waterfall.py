@@ -16,6 +16,7 @@ from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
 from leda_cal.useful import add_uncertainties
+import leda_cal.params
 
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
@@ -75,6 +76,7 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
  
     # Delete sun up LSTS
     if not all_lsts:
+       print "Cutting out times when sun/galaxy up"
        padding = np.delete(padding, unusable_lsts, axis=0)
        lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
        utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
@@ -111,9 +113,7 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
           print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
 
           if flag:
-            T_flagged = rfi_flag(T_flagged, thr_f=0.2, thr_t=0.2, rho=1.5,
-               bp_window_f=16, bp_window_t=16,
-               max_frac_f=0.5, max_frac_t=0.5)
+            T_flagged = rfi_flag(T_flagged, freqs=f_leda)
             print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
 
           if dump: 
@@ -191,6 +191,8 @@ if __name__ == "__main__":
       help='Apply flagging. Default: False')
     o.add_option('--all_lsts', dest='all_lsts', action='store_true', default=False,
       help='Include all LSTs, not just when Galaxy and Sun are down. A day/night stripe is printed on the right. Default: False.')
+    o.add_option('--median', dest='median', action='store_true', default=False,
+      help='Use a median filter in the sum threshold flagging. Overrides setting in params. Default: False.')
     o.add_option('--dump', dest='dump', action='store_true', default=False,
       help='Dump the data to a hickle file, with filename the same as the h5 but hkl extension. Default: False.')
     o.add_option('--save', dest='save', action='store_true', default=False,
@@ -205,4 +207,5 @@ if __name__ == "__main__":
       exit(1)
     else: filename = args[0]
 
+    params.median = opts.median
     quicklook(filename, opts.save, opts.dump, opts.flag, opts.no_show, opts.all_lsts)

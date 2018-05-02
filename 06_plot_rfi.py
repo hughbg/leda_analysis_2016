@@ -40,9 +40,7 @@ def quicklook(filename):
     #T_flagged -= T_flagged.mean(axis=0)
     #T_flagged = 10*np.log10(np.abs(np.fft.ifft(T_flagged)))
 
-    T_flagged = rfi_flag(T_flagged, thr_f=0.2, thr_t=0.2, rho=1.5,
-             bp_window_f=16, bp_window_t=16, 
-             max_frac_f=0.5, max_frac_t=0.5)
+    T_flagged = rfi_flag(T_flagged, freqs=f_leda)
 
     im = plt.imshow(T_flagged, # / np.median(xx, axis=0), 
                cmap='magma_r', aspect='auto',

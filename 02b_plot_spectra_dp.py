@@ -36,9 +36,7 @@ def quicklook(filename):
     print T_ant['lst'][mid]
     sl  = 20
     
-    T_flagged = rfi_flag(T_ant[ant_ids[0]], thr_f=0.15, thr_t=0.2, rho=1.5,
-             bp_window_f=16, bp_window_t=16, 
-             max_frac_f=0.5, max_frac_t=0.5)
+    T_flagged = rfi_flag(T_ant[ant_ids[0]], freqs=f_leda)
     
     plt.title("252A")
     plt.subplot(2,1,1)

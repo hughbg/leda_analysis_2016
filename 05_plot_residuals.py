@@ -80,19 +80,13 @@ def quicklook(filename):
     d1 = T_ant[ant_ids[1]][mid-sl:mid+sl]
     d2 = T_ant[ant_ids[2]][mid-sl:mid+sl]
     
-    d0 = rfi_flag(d0, thr_f=0.15, thr_t=0.15, rho=1.5,
-             bp_window_f=16, bp_window_t=16, 
-             max_frac_f=0.9, max_frac_t=0.9)
+    d0 = rfi_flag(d0, freqs=f_leda)
     d0 = np.median(d0, axis=0)
 
-    d1 = rfi_flag(d1, thr_f=0.15, thr_t=0.15, rho=1.5,
-             bp_window_f=16, bp_window_t=16, 
-             max_frac_f=0.9, max_frac_t=0.9)
+    d1 = rfi_flag(d1, freqs=f_leda)
     d1 = np.median(d1, axis=0)
     
-    d2 = rfi_flag(d2, thr_f=0.15, thr_t=0.15, rho=1.5,
-             bp_window_f=16, bp_window_t=16, 
-             max_frac_f=0.9, max_frac_t=0.9)
+    d2 = rfi_flag(d2, freqs=f_leda)
     d2 = np.median(d2, axis=0)
     
     #plt.imshow(d0, cmap='viridis', aspect='auto')

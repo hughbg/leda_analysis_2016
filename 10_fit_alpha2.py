@@ -67,9 +67,7 @@ def quicklook(filename):
         for ant_id in ant_ids:
             T_flagged = T_ant[ant_id][mid-sl:mid+sl]
             print T_ant[ant_id].shape
-            T_flagged = rfi_flag(T_flagged, thr_f=0.2, thr_t=0.2, rho=1.5,
-                     bp_window_f=16, bp_window_t=16, 
-                     max_frac_f=0.5, max_frac_t=0.5)    
+            T_flagged = rfi_flag(T_flagged, freqs=f_leda)
             #T_flagged = np.ma.array(T_flagged)
     
             d = T_flagged.mean(axis=0)

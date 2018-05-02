@@ -80,9 +80,7 @@ def quicklook(filename):
     
     n_chans = 42
     
-    d0 = rfi_flag(d0, thr_f=0.15, thr_t=0.15, rho=1.5,
-             bp_window_f=16, bp_window_t=16, 
-             max_frac_f=0.9, max_frac_t=0.9)
+    d0 = rfi_flag(d0, freqs=f_leda)
     
     d0 = useful.rebin(d0, 1, n_chans)
     f_leda = useful.rebin(f_leda, n_chans)
@@ -92,14 +90,10 @@ def quicklook(filename):
     
     
 
-    #d1 = rfi_flag(d1, thr_f=0.15, thr_t=0.15, rho=1.5,
-    #         bp_window_f=16, bp_window_t=16, 
-    #         max_frac_f=0.9, max_frac_t=0.9)
+    #d1 = rfi_flag(d1, freqs=f_leda)
     #d1 = np.median(d1, axis=0)
     #
-    #d2 = rfi_flag(d2, thr_f=0.15, thr_t=0.15, rho=1.5,
-    #         bp_window_f=16, bp_window_t=16, 
-    #         max_frac_f=0.9, max_frac_t=0.9)
+    #d2 = rfi_flag(d2, freqs=f_leda)
     #d2 = np.median(d2, axis=0)
     
     #plt.imshow(d0, cmap='viridis', aspect='auto')

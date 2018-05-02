@@ -20,6 +20,9 @@ import numpy as np
 import pylab as plt
 import bottleneck as bn
 
+from filter import filter
+from params import params
+
 def fit_poly(x, y, n=5, log=False):
     """ Fit a polynomial to x, y data 
     
@@ -90,8 +93,7 @@ def simple_flag(data, threshold):
            
 
 @check_mask
-def sum_threshold(data, thr_f, thr_t=None, scales=None, rho=1.5,
-                  plot_progress=False, verbose=False):
+def sum_threshold(data, plot_progress=False, verbose=False):
     """ Apply Sum-Threshold method 
     
     This function applies a set ofmoving averages to the data along both 
@@ -110,11 +112,10 @@ def sum_threshold(data, thr_f, thr_t=None, scales=None, rho=1.5,
                  A value of 1.5 is suggested as being "empirically good"
     """
 
-    if scales is None:
-        scales = [1, 2, 4, 8, 16, 32, 64]
-    
-    if thr_t is None:
-        thr_t = thr_f
+    thr_f = params.thr_f
+    thr_t = params.thr_t
+    scales = params.scales
+    rho = params.rho 
     
     mask = np.copy(data.mask)
     
@@ -136,9 +137,9 @@ def sum_threshold(data, thr_f, thr_t=None, scales=None, rho=1.5,
         thr_t = thr1_t / np.power(rho, np.log2(window))
         
         if window > 1:
-            summed_f = bn.move_nanmean(data, window, axis=1)
-            summed_t = bn.move_nanmean(data, window, axis=0)
-            #summed_b = bn.move_nanmean(summed_f, int(np.sqrt(window)), axis=0)
+            summed_f = filter(data, window, axis=1)
+            summed_t = filter(data, window, axis=0)
+            #summed_b = filter(summed_f, int(np.sqrt(window)), axis=0, use_bn=use_bn)
         
             mask_f = np.greater_equal(np.abs(summed_f-1), thr_f)
             mask_t = np.greater_equal(np.abs(summed_t-1), thr_t)
@@ -175,7 +176,7 @@ def sum_threshold(data, thr_f, thr_t=None, scales=None, rho=1.5,
     return data.mask
 
 @check_mask
-def estimate_bandpass(data, window_f=32, window_t=32):
+def estimate_bandpass(data):
     """ Estimate bandpass by rolling median over time
     
     data (np.ma.array): data array with axes (freq, time)
@@ -185,13 +186,13 @@ def estimate_bandpass(data, window_f=32, window_t=32):
     TODO: Fit a polynomial instead?
     """
         
-    est = bn.move_median(data, window=window_f, axis=0)
-    est = bn.move_median(est, window=window_t, axis=1)
+    est = filter(data, params.st_bp_window_f, axis=0)
+    est = filter(est, params.st_bp_window_t, axis=1)
     
     return est
 
 @check_mask
-def flag_absolute(data, thr_max=10, thr_min=0):
+def flag_absolute(data):
     """ Flag anything above or below absolute thresholds.
     
     First pass for horrific data.
@@ -199,12 +200,12 @@ def flag_absolute(data, thr_max=10, thr_min=0):
     data (np.ma.array): data array with axes (freq, time)
     
     """
-    data.mask = np.logical_or(data.mask, data > thr_max)
-    data.mask = np.logical_or(data.mask, data < thr_min)
+    data.mask = np.logical_or(data.mask, data > params.thr_max)
+    data.mask = np.logical_or(data.mask, data < params.thr_min)
     return data.mask
 
 @check_mask
-def flag_fraction(data, max_frac_f=0.5, max_frac_t=0.5):
+def flag_fraction(data):
     """ Get rid of integs / freq channels with high occupancy
     
     data (np.ma.array): data array with axes (freq, time)
@@ -217,8 +218,8 @@ def flag_fraction(data, max_frac_f=0.5, max_frac_t=0.5):
     occ_f = np.sum(data.mask, axis=0) / float(data.shape[0])
     occ_t = np.sum(data.mask, axis=1) / float(data.shape[1])
     
-    bad_f = occ_f > max_frac_f
-    bad_t = occ_t > max_frac_t
+    bad_f = occ_f > params.max_frac_f
+    bad_t = occ_t > params.max_frac_t
     
     data.mask[bad_t, :] = True
     data.mask[:, bad_f] = True
@@ -226,7 +227,7 @@ def flag_fraction(data, max_frac_f=0.5, max_frac_t=0.5):
     return data.mask
 
 @check_mask
-def flag_window(data, window_f, window_t):
+def flag_window(data):
     """ Flag either side where stats aren't right
     
     The rolling window doesn't work properly on the edges, so flag this.
@@ -235,23 +236,16 @@ def flag_window(data, window_f, window_t):
     window (int): size of window applied to data    
     
     """
-    data.mask[:window_t, :] = True
-    data.mask[-1 * window_t:, : ] = True
-    data.mask[:, :window_f] = True
-    data.mask[:, -1 * window_f:] = True
+    data.mask[:params.st_bp_window_t, :] = True
+    data.mask[-1 * params.st_bp_window_t:, : ] = True
+    data.mask[:, :params.st_bp_window_f] = True
+    data.mask[:, -1 * params.st_bp_window_f:] = True
     return data.mask
 
-def clip1(data, bp_window_f=8, bp_window_t=8):
-  limit = 4
-  for i in range(data.shape[1]):
-    flat = bn.move_nanmean(data[:, i], bp_window_t)
-    flat = data[:, i]-flat			# this will also insert the mask
-    std = np.std(flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))]); 
-    clip_mask = np.logical_or(flat < -limit*std, limit*std < flat) 
-    data.mask[:,i] = np.logical_or(data.mask[:,i], clip_mask)
+def clip(data):
 
-  
-def clip(data, bp_window_f=8, bp_window_t=8):
+  bp_window_t = params.sc_bp_window_t
+  bp_window_f = params.sc_bp_window_f
 
   # Get the standard deviation of the high (by frequency) third of the data, for clipping
   cut = data.shape[1]/3
@@ -264,8 +258,8 @@ def clip(data, bp_window_f=8, bp_window_t=8):
   if np.ma.is_masked(chunk): chunk = chunk[chunk.mask==False]
 
   # Clipping values
-  dmin = -4*np.std(chunk)
-  dmax = 4*np.std(chunk); 
+  dmin = -params.sigma*np.std(chunk)
+  dmax = params.sigma*np.std(chunk); 
 
   # Mask the data. Have to flatten the data to find where to mask it
   flat = bn.move_nanmean(data, bp_window_t, axis=0)
@@ -280,10 +274,40 @@ def clip(data, bp_window_f=8, bp_window_t=8):
   data.mask = np.logical_or(data.mask, flat<dmin)
 
 
+def clip1(data):
+    nstart = np.ma.count(data)
+    for i in range(data.shape[1]):
+      flat = bn.move_nanmean(data[:, i], params.sc_bp_window_t)
+      flat = data[:, i]-flat			# this will also insert the mask
+      std = np.std(flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))])
+      if not np.isnan(float(std)):
+        clip_mask = np.logical_or(flat < -params.sigma*std, params.sigma*std < flat) 
+        data[:,i].mask = np.logical_or(data[:, i].mask, clip_mask)
+
+    if np.ma.count(data) > nstart:
+      print "ERROR: number of points flagged went DOWN after clipping!"
+      exit(1)
+
+   
+def do_dtv_flagging(data, freqs):
+
+  nstart = np.ma.count(data)
+  for freq in params.dtv_frequencies:
+    channel = len(freqs[freqs<freq])-1	# channel of the nearest freq
+    channels = [ channel-1, channel, channel+1 ]
+ 
+    for i in range(data.shape[0]):
+      if np.ma.is_masked(data[i, channels]): 
+        data[i, channel-13:channel+250-13 ].mask = True	# The start of the TV subband is 13 channels back and 250 wide
+    
+  if np.ma.count(data) > nstart:
+    print "ERROR: number of points flagged went DOWN after DTV flagging!"
+    exit(1)    
+
+
+
 @check_mask
-def rfi_flag(data, thr_f, thr_t=None, rho=1.5,
-             bp_window_f=64, bp_window_t=64, 
-             max_frac_f=0.5, max_frac_t=0.5, scales=None, freqs=None):
+def rfi_flag(data, freqs=None):
     """ RFI Flagging routine for LEDA data
     
     Centered around a sum-threshold method, this method:
@@ -307,44 +331,23 @@ def rfi_flag(data, thr_f, thr_t=None, rho=1.5,
                         for a given integration    
     """
     
-    dtv_frequencies = [ 54.31, 60.31, 66.31, 76.31, 82.31 ]
     
-    bpass = estimate_bandpass(data, window_f=bp_window_f, window_t=bp_window_t)
-    to_flag = data / bpass
-    #to_flag.mask = flag_absolute(to_flag, thr_max=thr_max, thr_min=thr_min)
-    
-    #plt.figure()
-    #plt.imshow(data, aspect='auto', clim=(1,20))
-    #plt.colorbar()
-    #
-    #plt.figure()
-    #plt.imshow(bpass, aspect='auto')
-    #plt.colorbar()
-    #       
-    #plt.figure()
-    #plt.imshow(to_flag, aspect='auto')
-    #plt.colorbar()
-    #plt.show()
-        
-    to_flag.mask = sum_threshold(to_flag, thr_f, thr_t, scales)
-    to_flag.mask = flag_fraction(to_flag, max_frac_f=max_frac_f, max_frac_t=max_frac_t)
-    to_flag.mask = flag_window(to_flag, window_f=bp_window_f, window_t=bp_window_t)
-    
-    data.mask = to_flag.mask
+    if params.do_sum_threshold:
+      bpass = estimate_bandpass(data)
+      to_flag = data / bpass
 
-  
-    clip1(data, bp_window_f,bp_window_t)	# sigma clipping
+      to_flag.mask = sum_threshold(to_flag)
+      to_flag.mask = flag_fraction(to_flag)
+      to_flag.mask = flag_window(to_flag)
+    
+      data.mask = to_flag.mask
 
-    # DTV 
-    if freqs is not None:
-      for freq in dtv_frequencies:
-        channel = len(freqs[freqs<freq])-1	# channel of the nearest freq
-        channels = [ channel-1, channel, channel+1 ]
- 
-        for i in range(data.shape[0]):
-          if np.ma.is_masked(data[i, channels]): 
-            data.mask[i, channel-13:channel+250-13 ] = True	# The start of the TV subband is 13 channels back and 250 wide
-        
+    if params.do_sigma_clip: clip1(data)		# sigma clipping
+
+    if params.do_dtv_flagging and freqs is not None: do_dtv_flagging(data, freqs) 
+
+    # Make sure all Nan are masked
+    data.mask = np.logical_or(data.mask, np.isnan(data))
 
 
     return data

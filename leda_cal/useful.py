@@ -8,6 +8,7 @@ import numpy as np
 import pylab as plt
 from scipy.signal import wiener
 from numpy import fft
+from params import params
 from scipy.stats import skew, kurtosis
 
 def smooth(list, degree=5):
@@ -163,7 +164,7 @@ def ensure_mask(data):
     mask = data.mask
   except AttributeError:
     data = np.ma.array(data)
-    data.mask = np.full((data.shape[0], data.shape[1]), False)
+    data.mask = np.ma.make_mask_none((data.shape[0], data.shape[1]))
   return data
 
 def pad(data, bp_window_f, bp_window_t):
@@ -183,16 +184,21 @@ def pad(data, bp_window_f, bp_window_t):
   return new_data
 
 
-def add_uncertainties(data, bp_window_t=8):
+def add_uncertainties(data):
 
   data = ensure_mask(data)
   rms = np.zeros(data.shape[1])
 
   for i in range(data.shape[1]):
-    flat = bn.move_nanmean(data[:, i], bp_window_t, axis=0)
+    flat = bn.move_nanmean(data[:, i], params.un_bp_window_t, axis=0)
     flat = data[:, i]-flat
-    flat.mask = data.mask[:, i]
-    flat = flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))]
+    flat = np.ma.ravel(flat)
+    flat = flat[np.logical_not(flat.mask)]
+    if len(flat) != np.ma.MaskedArray.count(data):
+      print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data)
+      exit(1)
+    flat = flat[np.logical_not(np.isnan(flat))]
+ 
     rms[i] = float(np.std(flat))		# Will be Nan if whole channel masked
     
   return rms
@@ -200,7 +206,7 @@ def add_uncertainties(data, bp_window_t=8):
   
 
 import scipy.optimize
-def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for flattening
+def statistics(data):	# I think 8 is better for flattening
 
   def num2str(x):
     return ( "%.3f" % x )
@@ -222,12 +228,15 @@ def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for fl
   data = ensure_mask(data)
 
   # Now can use the demeaning
-  flat = bn.move_nanmean(data, bp_window_t, axis=0)
-  flat = bn.move_nanmean(flat, bp_window_f, axis=1)
+  flat = bn.move_nanmean(data, params.st_bp_window_t, axis=0)
+  flat = bn.move_nanmean(flat, params.st_bp_window_f, axis=1)
   flat = data-flat
-  flat.mask = data.mask
   flat = np.ma.ravel(flat)
-  flat = flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))]
+  flat = flat[np.logical_not(flat.mask)]
+  if len(flat) != np.ma.MaskedArray.count(data):
+    print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data)
+    exit(1)
+  flat = flat[np.logical_not(np.isnan(flat))]
   flat -= np.mean(flat)
 
   # Print stats. Some are from the data, others from the flattened data
@@ -242,9 +251,9 @@ def statistics(data, bp_window_f=8, bp_window_t=8):	# I think 8 is better for fl
 
 
   # Get histogram for Gauss fit
-  histogram = np.zeros((5000, 2))
-  hist = np.histogram(flat, 5000)
-  histogram[:, 0] = hist[1][:5000]
+  histogram = np.zeros((params.histogram_length, 2))
+  hist = np.histogram(flat, params.histogram_length)
+  histogram[:, 0] = hist[1][:params.histogram_length]
   histogram[:, 1] = hist[0]
   np.savetxt("hist_data.dat", histogram)
 

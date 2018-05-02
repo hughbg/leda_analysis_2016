@@ -25,9 +25,7 @@ def quicklook(filename, save, flag, noshow):
     mmax = 0
     for ant in ant_ids:
       if flag:
-        T_flagged = rfi_flag(T_ant[ant], thr_f=0.2, thr_t=0.2, rho=1.5,
-             bp_window_f=16, bp_window_t=16,
-             max_frac_f=0.5, max_frac_t=0.5)
+        T_flagged = rfi_flag(T_ant[ant], freqs=f_leda)
         T_ant[ant] = np.ma.filled(T_flagged, 0)
 
       if flag: tmax = np.max(T_ant[ant])

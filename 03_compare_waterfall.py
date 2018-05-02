@@ -39,9 +39,7 @@ def quicklook(filename):
         ax = fig.add_subplot(1, 3, ii+1)
         
         T_flagged = T_ant[key]
-        #T_flagged = rfi_flag(T_ant[key], thr_f=0.07, thr_t=0.07, rho=1.5,
-        #         bp_window_f=8, bp_window_t=8, 
-        #         max_frac_f=0.3, max_frac_t=0.3)
+        #T_flagged = rfi_flag(T_ant[key], f_leda)
         
         T_ant[key] = T_flagged
         
