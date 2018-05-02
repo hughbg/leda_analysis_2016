@@ -50,9 +50,7 @@ def quicklook(filename):
 
     for aa in ant_ids:
         if not aa == 'BB':
-            T_flagged = rfi_flag(T_ant[aa], thr_f=0.1, thr_t=0.1, rho=1.5,
-                     bp_window_f=8, bp_window_t=8, 
-                     max_frac_f=0.5, max_frac_t=0.5)
+            T_flagged = rfi_flag(T_ant[aa], freqs=f_leda)
 
             #plt.plot(gsm["f"], gsm["T_ew"], c='#333333', ls='dashed')
 
