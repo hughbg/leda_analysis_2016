@@ -101,8 +101,8 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts):
     if noise:
       sigma = scipy.ndimage.filters.generic_filter(np.ma.filled(data, np.nan), rms_filter, size=(params.stats_bp_window_t, params.stats_bp_window_f))
       sigma = np.ma.filled(sigma, 0)
-      print "Creating", os.path.basename(filename)[:-3]+"_"+ant+"_noise.fits"
-      f = open(os.path.basename(filename)[:-3]+"_"+ant+"_noise.fits", "wb")
+      print "Creating", os.path.basename(filename)[:-3]+"_"+ant+"_rms.fits"
+      f = open(os.path.basename(filename)[:-3]+"_"+ant+"_rms.fits", "wb")
       f.write(fits_header)
       sigma = sigma[::-1]		# have to flip
       sigma.astype(np.float32).byteswap().tofile(f)
