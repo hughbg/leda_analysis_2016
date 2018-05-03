@@ -194,8 +194,8 @@ def add_uncertainties(data):
     flat = data[:, i]-flat
     flat = np.ma.ravel(flat)
     flat = flat[np.logical_not(flat.mask)]
-    if len(flat) != np.ma.MaskedArray.count(data):
-      print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data)
+    if len(flat) != np.ma.MaskedArray.count(data[:, i]):
+      print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data[:, i])
       exit(1)
     flat = flat[np.logical_not(np.isnan(flat))]
  
