@@ -7,11 +7,13 @@ Plot data as calibrated waterfall plot.
 """
 import os
 import hickle
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import seaborn as sns
 import tables as tb
 import scipy.signal
+from scipy.stats import scoreatpercentile as percentile
 from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
@@ -31,7 +33,7 @@ gal_center._dec = '-29 00 28.1'
 gal_center.name = "Galactic Center"
 
 
-def quicklook(filename, save, dump, flag, no_show, all_lsts):
+def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
@@ -40,7 +42,7 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
     ant_ids = ['252', '254', '255']
       
     print("Plotting...")
-    fig, axes = plt.subplots(figsize=(12, 12))
+    fig = plt.figure(figsize=(12, 12))
     #plt.suptitle(h5.filename)
     
     lst_stamps = T_ant['lst']
@@ -98,12 +100,30 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
     else: new_x_high = xlims[1]
 
     dump_data = {}
-
+    
+    if flag and merge:
+        # If we are going to merge the flags across antennas, we need to flag them all now
+        for p in (0, 1):
+            for ii,key in enumerate(ant_ids):
+                ant = key+("B" if p else "A")
+                T_flagged = T_ant[ant]
+                if not all_lsts:
+                    T_flagged = np.delete(T_flagged, unusable_lsts, axis=0)
+                new_mask = rfi_flag(T_flagged, freqs=f_leda).mask
+                try:
+                    merged_mask |= new_mask
+                except NameError:
+                    merged_mask = new_mask
+        
     for p in [ 0, 1 ]:
 
       for ii, key in enumerate(ant_ids):
-          ax = fig.add_subplot(2, 3, 3*p+ii+1)
-        
+          if p == 0 and ii == 0:
+              ax = fig.add_subplot(2, 3, 3*p+ii+1)
+              origAX = ax
+          else:
+              ax = fig.add_subplot(2, 3, 3*p+ii+1, sharex=origAX, sharey=origAX)
+              
 	  if p == 0: ant = key+"A"
           else: ant = key+"B"
 
@@ -113,7 +133,13 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
           print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
 
           if flag:
-            T_flagged = rfi_flag(T_flagged, freqs=f_leda)
+            if merge:
+                ## Already done
+                T_flagged = np.ma.array(T_flagged, mask=merged_mask)
+            else:
+                ## Need to do it now - there's probably a way to deal with 
+                ## this all in one pass
+                T_flagged = rfi_flag(T_flagged, freqs=f_leda)
             print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
 
           if dump: 
@@ -133,40 +159,51 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
           if all_lsts: T_flagged_plot = np.ma.concatenate((T_flagged, padding), axis=1)
           else: T_flagged_plot = T_flagged
 
-          axim = plt.subplot(2, 3, 3*p+ii+1)
-          axim.set_yticks(yloc)
-          axim.set_yticklabels(ylabel)
-	  axim.tick_params(axis='y', pad=2)
+          #if p == 0 and ii == 0:
+          #    axim = origAX
+          #else:
+          #    axim = fig.add_subplot(2, 3, 3*p+ii+1, sharex=origAX, sharey=origAX)
+          ax.set_yticks(yloc)
+          ax.set_yticklabels(ylabel)
+          ax.tick_params(axis='y', pad=2)
+          
+          if flatten:
+             abp = np.ma.median(T_flagged_plot, axis=0)
+             abp /= np.ma.median(abp)
+             T_flagged_plot /= abp
+             try:
+                 clim = (percentile(T_flagged_plot.compressed(), 5), percentile(T_flagged_plot.compressed(), 95))
+             except AttributeError:
+                 clim = (percentile(T_flagged_plot, 5), percentile(T_flagged_plot, 95))
 
-          im = plt.imshow(T_flagged_plot, # / np.median(xx, axis=0), 
-                   cmap='viridis', aspect='auto',
+          else:
+             clim = (1000, 10000)
+
+          im = ax.imshow(T_flagged_plot, # / np.median(xx, axis=0), 
+                   cmap='jet', aspect='auto',
                    interpolation='nearest',
-                   clim=(1000, 10000),
+                   clim=clim,
                    extent=(xlims[0], new_x_high, ylims[1], ylims[0])
                    )
 
-          plt.title(ant)
- 	  if p == 1: plt.xlabel("Frequency [MHz]")
+          ax.set_title(ant)
+          if p == 1: ax.set_xlabel("Frequency [MHz]")
+          if ii == 0: ax.set_ylabel("LST [hr]")
           #ax.yaxis_date()
           #ax.yaxis.set_major_formatter(hfmt)
           #
 
-    plt.subplot(2,3,1)
-    plt.ylabel("LST [hr]")
-    plt.subplot(2,3,4)
-    plt.ylabel("LST [hr]")
-
-    
-    fig.subplots_adjust(left=0.07)
-    fig.subplots_adjust(right=0.875)
-    cbar_ax = fig.add_axes([0.9, 0.125, 0.025, 0.75])
-    cbar = fig.colorbar(im, cax=cbar_ax)
-    
-    #plt.subplot(2,3,3)
-    #cbar = plt.colorbar()
-    cbar.set_label("Temperature [K]")
-    cbar.ax.tick_params(axis='y', pad=2) 
-    #plt.tight_layout()
+    if not flatten:
+        fig.subplots_adjust(left=0.07)
+        fig.subplots_adjust(right=0.875)
+        cbar_ax = fig.add_axes([0.9, 0.125, 0.025, 0.75])
+        cbar = fig.colorbar(im, cax=cbar_ax)
+        
+        #plt.subplot(2,3,3)
+        #cbar = plt.colorbar()
+        cbar.set_label("Temperature [K]")
+        cbar.ax.tick_params(axis='y', pad=2) 
+        #plt.tight_layout()
     
     if save:
       plt.savefig(os.path.basename(filename)[:-3]+".png")
@@ -177,7 +214,7 @@ def quicklook(filename, save, dump, flag, no_show, all_lsts):
       dump_data["lsts"] = lst_stamps
       dump_data["utcs"] = np.array([str(pytime) for pytime in utc_stamps])
       dump_data["frequencies"] = f_leda
-      dump_data["options"] = "Flag="+str(flag)+" All LSTSs="+str(all_lsts)
+      dump_data["options"] = "Flag="+str(flag)+" Merge="+str(merge)+" Flatten="+str(flatten)+" All LSTSs="+str(all_lsts)
       hickle.dump(dump_data, os.path.basename(filename)[:-3]+".hkl")
 
 if __name__ == "__main__":
@@ -187,8 +224,12 @@ if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage(usage)
     o.set_description(__doc__)
+    o.add_option('--flatten', dest='flatten', action='store_true', default=False,
+      help='Apply a crude bandpass derived from the data. Default: False')
     o.add_option('--flag', dest='flag', action='store_true', default=False,
       help='Apply flagging. Default: False')
+    o.add_option('--merge', dest='merge', action='store_true', default=False,
+      help='Merge all flags. Default: False')
     o.add_option('--all_lsts', dest='all_lsts', action='store_true', default=False,
       help='Include all LSTs, not just when Galaxy and Sun are down. A day/night stripe is printed on the right. Default: False.')
     o.add_option('--median', dest='median', action='store_true', default=False,
@@ -208,4 +249,4 @@ if __name__ == "__main__":
     else: filename = args[0]
 
     params.median = opts.median
-    quicklook(filename, opts.save, opts.dump, opts.flag, opts.no_show, opts.all_lsts)
+    quicklook(filename, opts.save, opts.dump, opts.flag, opts.merge, opts.flatten, opts.no_show, opts.all_lsts)
