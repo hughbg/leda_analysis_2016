@@ -4,10 +4,9 @@ skymodel.py
 
 Global Sky Model (GSM) class used for calibration of ledaspec data.
 
-
 """
 
-
+import os
 import hickle as hkl
 import numpy as np
 import pylab as plt
@@ -15,17 +14,24 @@ import pylab as plt
 from scipy import interpolate
 from scipy.optimize import curve_fit
 
-class SkyModel(object):
+class SkyModelGSM(object):
     """ GSM sky model class"""
+    
+    # Relative path to the data
+    _path = 'gsm'
+    
+    # Common names for the .hkl files
+    _name = 'gsm'
+    
     def __init__(self, pol='x', npol=7):
         self.pol = pol
         if pol == 'x':
-            self.data = hkl.load('gsm/gsm_ew.hkl')[:, 1:].T
-            self.lsts = hkl.load('gsm/gsm_ew.hkl')[:, 0].T
+            self.data = hkl.load(os.path.join(self._path, '%s_ew.hkl' % self._name))[:, 1:].T
+            self.lsts = hkl.load(os.path.join(self._path, '%s_ew.hkl' % self._name))[:, 0].T
 
         if pol == 'y':
-            self.data = hkl.load('gsm/gsm_ns.hkl')[:, 1:].T
-            self.lsts = hkl.load('gsm/gsm_ns.hkl')[:, 0].T
+            self.data = hkl.load(os.path.join(self._path, '%s_ns.hkl' % self._name))[:, 1:].T
+            self.lsts = hkl.load(os.path.join(self._path, '%s_ns.hkl' % self._name))[:, 0].T
 
         self.freqs = np.arange(30, 90.01, 5) * 1e6
         self.npol  = npol
@@ -43,7 +49,7 @@ class SkyModel(object):
     def compute_gsm_splines(self):
         """ Load GSM data and form interpolation splines """
 
-        print "computing GSM for Pol %s" % self.pol
+        print "computing %s for Pol %s" % (self._name.upper(), self.pol)
         drift_data, drift_lsts, drift_freqs = self.data, self.lsts, self.freqs
         
         # Extend to full 24 hours then form interpolation spline
@@ -101,20 +107,39 @@ class SkyModel(object):
         np.apply_along_axis(self._generate_tsky, 0, tsky, lst, freqs)
         return tsky
 
+class SkyModelLFSM(SkyModelGSM):
+    """ LFSM sky model class"""
+    
+    # Relative path to the data
+    _path = 'lfsm'
+    
+    # Common names for the .hkl files
+    _name = 'lfsm'
+
+# Backwards compatibility
+SkyModel = SkyModelGSM
+
 if __name__ == '__main__':        
-    sx = SkyModel('x')
-    sy = SkyModel('y')
+    sgx = SkyModelGSM('x')
+    sgy = SkyModelGSM('y')
+    slx = SkyModelLFSM('x')
+    sly = SkyModelLFSM('y')
     f = np.linspace(30, 90, 100) * 1e6
 
-    xx = []
-    yy = []
+    gxx, gyy = [], []
+    lxx, lyy = [], []
 
     for ii in range(0, 24):
-        xx.append(sx.generate_tsky(ii, f))
-        yy.append(sy.generate_tsky(ii, f))
+        gxx.append(sgx.generate_tsky(ii, f))
+        gyy.append(sgy.generate_tsky(ii, f))
+        lxx.append(slx.generate_tsky(ii, f))
+        lyy.append(sly.generate_tsky(ii, f))
 
-    xx, yy = np.array(xx), np.array(yy)
+    gxx, gyy = np.array(gxx), np.array(gyy)
+    lxx, lyy = np.array(lxx), np.array(lyy)
 
-    plt.plot(xx[:, 0])
-    plt.plot(yy[:, 0])
+    plt.plot(gxx[:, 0], linestyle='-', color='b')
+    plt.plot(gyy[:, 0], linestyle='-', color='g')
+    plt.plot(lxx[:, 0], linestyle='--', color='b')
+    plt.plot(lyy[:, 0], linestyle='--', color='g')
     plt.show()
