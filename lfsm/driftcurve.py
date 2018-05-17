@@ -45,7 +45,7 @@ Options:
 -x, --do-plot          Plot the driftcurve data
 -v, --verbose          Run driftcurve in vebose mode
 """
-
+	
 	if exitCode is not None:
 		sys.exit(exitCode)
 	else:
@@ -64,7 +64,7 @@ def parseOptions(args):
 	config['enableDisplay'] = False
 	config['verbose'] = False
 	config['args'] = []
-
+	
 	# Read in and process the command line flags
 	try:
 		opts, arg = getopt.getopt(args, "hvsof:p:elt:x", ["help", "verbose", "lwasv", "ovro-lwa", "freq=", "polarization=", "empirical", "lfsm", "time-step=", "do-plot",])
@@ -72,7 +72,7 @@ def parseOptions(args):
 		# Print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
 		usage(exitCode=2)
-	
+		
 	# Work through opts
 	for opt, value in opts:
 		if opt in ('-h', '--help'):
@@ -97,17 +97,66 @@ def parseOptions(args):
 			config['enableDisplay'] = True
 		else:
 			assert False
-	
+			
 	# Add in arguments
 	config['args'] = arg
-
+	
 	# Check the validity of arguments
 	if config['pol'] not in ('NS', 'EW'):
 		print "Invalid polarization: '%s'" % config['pol']
 		usage(exitCode=2)
-
+		
 	# Return configuration
 	return config
+
+
+def interpextrap1d(x, y, kind='linear'):
+	"""
+	Combine the scipy.interplate.interp1d function with linear extrapolation
+	to create a combination interpolation/extrapolation function.
+	
+	.. note:: Is this a wise thing to do for the empirical corrections to
+	the dipole gain pattern?
+	"""
+	
+	# Get the upper and lower bounds of x so we know where to interpolate
+	ll, ul = x[0], x[-1]
+	
+	# Inside x - standard interp1d
+	iFunc = interp1d(x, y, kind=kind, bounds_error=False)
+	# Outside x - linear extrapolation
+	## < Lower limit
+	lFit = numpy.polyfit(x[:2], y[:2], 1)
+	lFunc = lambda x: numpy.polyval(lFit, x)
+	## > Upper limit
+	uFit = numpy.polyfit(x[-2:], y[-2:], 1)
+	uFunc = lambda x: numpy.polyval(uFit, x)
+	
+	# Build up the composite function to return
+	def func(xe):
+		## Check and see if we have a numpy.array or list.  If not, make one
+		try:
+			len(xe)
+			convert = False
+		except TypeError:
+			xe = numpy.array([xe,])
+			convert = True
+			
+		## Evaluate the function in the various regimes
+		out = iFunc(xe)
+		bad = numpy.where( xe < ll )
+		out[bad] = lFunc(xe[bad])
+		bad = numpy.where( xe > ul )
+		out[bad] = uFunc(xe[bad])
+		
+		## Deal with signal values again
+		if convert:
+			xe = xe[0]
+			
+		return out
+		
+	# Done
+	return func
 
 
 def main(args):
@@ -166,13 +215,13 @@ def main(args):
 		cCorrs = corrDict['corrs']
 		corrDict.close()
 		
-		if config['freq']/1e6 < cFreqs.min() or config['freq']/1e6 > cFreqs.max():
+		if config['freq']/1e6 < cFreqs.min()-11 or config['freq']/1e6 > cFreqs.max()+11:
 			print "WARNING: Input frequency of %.3f MHz is out of range, skipping correction"
 			corrFnc = None
 		else:
 			fCors = cAlts*0.0
 			for i in xrange(fCors.size):
-				ffnc = interp1d(cFreqs, cCorrs[:,i], bounds_error=False)
+				ffnc = interpextrap1d(cFreqs, cCorrs[:,i])
 				fCors[i] = ffnc(config['freq']/1e6)
 			corrFnc = interp1d(cAlts, fCors, bounds_error=False)
 			
