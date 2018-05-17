@@ -164,7 +164,10 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
           ax.tick_params(axis='y', pad=2)
           
           if flatten:
-             abp = np.ma.median(T_flagged_plot.data, axis=0)
+             if type(T_flagged_plot) is np.ma.core.MaskedArray:
+                 abp = np.ma.median(T_flagged_plot.data, axis=0)
+             else:
+                 abp = np.ma.median(T_flagged_plot, axis=0)
              abp /= np.ma.median(abp)
              T_flagged_plot /= abp
              try:
