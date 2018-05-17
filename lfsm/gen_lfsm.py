@@ -1,5 +1,5 @@
 """
-gen_gsm.py
+gen_lfsm.py
 ----------
 
 Run driftscan.py and convert the outputs into a single hkl file.
@@ -14,8 +14,8 @@ import numpy as np
 import hickle as hkl
 
 for freq in xrange(30, 95, 5):
-    os.system("python driftcurve.py -o -f %i -p EW" % freq)
-    os.system("python driftcurve.py -o -f %i -p NS" % freq)
+    os.system("python driftcurve.py -o -l -f %i -p EW" % freq)
+    os.system("python driftcurve.py -o -l -f %i -p NS" % freq)
 
 files_ew = [
     'driftcurve_ovro_EW_30.00.txt',
@@ -50,32 +50,32 @@ files_ns = [
 ]
 
 
-gsm_ew = np.zeros((144, 14))
-gsm_ns = np.zeros((144, 14))
+lfsm_ew = np.zeros((144, 14))
+lfsm_ns = np.zeros((144, 14))
 
 ii = 0
 for filename in files_ew:
     a = np.genfromtxt(filename)
     if ii == 0:
-        gsm_ew[:, 0] = a[:, 0]
-        gsm_ew[:, 1] = a[:, 1]
+        lfsm_ew[:, 0] = a[:, 0]
+        lfsm_ew[:, 1] = a[:, 1]
         ii = 2
     else:
-        gsm_ew[:, ii] = a[:, 1]
+        lfsm_ew[:, ii] = a[:, 1]
         ii += 1
 
 ii = 0
 for filename in files_ns:
     a = np.genfromtxt(filename)
     if ii == 0:
-        gsm_ns[:, 0] = a[:, 0]
-        gsm_ns[:, 1] = a[:, 1]
+        lfsm_ns[:, 0] = a[:, 0]
+        lfsm_ns[:, 1] = a[:, 1]
         ii = 2
     else:
-        gsm_ns[:, ii] = a[:, 1]
+        lfsm_ns[:, ii] = a[:, 1]
         ii += 1
 
 
-hkl.dump(gsm_ew, 'gsm_ew.hkl')
-hkl.dump(gsm_ns, 'gsm_ns.hkl')
+hkl.dump(lfsm_ew, 'lfsm_ew.hkl')
+hkl.dump(lfsm_ns, 'lfsm_ns.hkl')
 

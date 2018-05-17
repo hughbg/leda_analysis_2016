@@ -39,7 +39,7 @@ Options:
                        default = EW)
 -e, --empirical        Enable empirical corrections to the dipole model
                        (valid from 35 to 80 MHz, default = no)
--l, --lfms             Use LFSM instead of GSM
+-l, --lfsm             Use LFSM instead of GSM
 -t, --time-step        Time step of simulations in minutes (default = 
                        10)
 -x, --do-plot          Plot the driftcurve data
@@ -245,7 +245,7 @@ def main(args):
 	if config['enableDisplay']:
 		pylab.figure(2)
 		pylab.title("Driftcurve: %s pol. @ %0.2f MHz - %s" % \
-			(config['pol'], config['freq']/1e6), config['site'].upper())
+			(config['pol'], config['freq']/1e6, config['site'].upper()))
 		pylab.plot(lstList, powListAnt, "ro", label="Antenna Pattern")
 		pylab.xlabel("LST [hours]")
 		pylab.ylabel("Temp. [K]")
