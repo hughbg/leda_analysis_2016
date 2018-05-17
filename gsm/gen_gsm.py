@@ -2,46 +2,51 @@
 gen_gsm.py
 ----------
 
-Convert driftscan.py outputs into a single hkl file.
+Run driftscan.py and convert the outputs into a single hkl file.
 
 Output file is 15 x 144 in size, one file per polarization.
 First col is lst, all others are frequencies 30 - 90 MHz.
 
 """
 
+import os
 import numpy as np
 import hickle as hkl
 
+for freq in xrange(30, 95, 5):
+    os.system("python driftcurve.py -o -f %i -p EW" % freq)
+    os.system("python driftcurve.py -o -f %i -p NS" % freq)
+
 files_ew = [
-    'driftcurve_lwa1_EW_30.00.txt',
-    'driftcurve_lwa1_EW_35.00.txt',
-    'driftcurve_lwa1_EW_40.00.txt',
-    'driftcurve_lwa1_EW_45.00.txt',
-    'driftcurve_lwa1_EW_50.00.txt',
-    'driftcurve_lwa1_EW_55.00.txt',
-    'driftcurve_lwa1_EW_60.00.txt',
-    'driftcurve_lwa1_EW_65.00.txt',
-    'driftcurve_lwa1_EW_70.00.txt',
-    'driftcurve_lwa1_EW_75.00.txt',
-    'driftcurve_lwa1_EW_80.00.txt',
-    'driftcurve_lwa1_EW_85.00.txt',
-    'driftcurve_lwa1_EW_90.00.txt'
+    'driftcurve_ovro_EW_30.00.txt',
+    'driftcurve_ovro_EW_35.00.txt',
+    'driftcurve_ovro_EW_40.00.txt',
+    'driftcurve_ovro_EW_45.00.txt',
+    'driftcurve_ovro_EW_50.00.txt',
+    'driftcurve_ovro_EW_55.00.txt',
+    'driftcurve_ovro_EW_60.00.txt',
+    'driftcurve_ovro_EW_65.00.txt',
+    'driftcurve_ovro_EW_70.00.txt',
+    'driftcurve_ovro_EW_75.00.txt',
+    'driftcurve_ovro_EW_80.00.txt',
+    'driftcurve_ovro_EW_85.00.txt',
+    'driftcurve_ovro_EW_90.00.txt'
 ]
 
 files_ns = [
-    'driftcurve_lwa1_NS_30.00.txt',
-    'driftcurve_lwa1_NS_35.00.txt',
-    'driftcurve_lwa1_NS_40.00.txt',
-    'driftcurve_lwa1_NS_45.00.txt',
-    'driftcurve_lwa1_NS_50.00.txt',
-    'driftcurve_lwa1_NS_55.00.txt',
-    'driftcurve_lwa1_NS_60.00.txt',
-    'driftcurve_lwa1_NS_65.00.txt',
-    'driftcurve_lwa1_NS_70.00.txt',
-    'driftcurve_lwa1_NS_75.00.txt',
-    'driftcurve_lwa1_NS_80.00.txt',
-    'driftcurve_lwa1_NS_85.00.txt',
-    'driftcurve_lwa1_NS_90.00.txt'
+    'driftcurve_ovro_NS_30.00.txt',
+    'driftcurve_ovro_NS_35.00.txt',
+    'driftcurve_ovro_NS_40.00.txt',
+    'driftcurve_ovro_NS_45.00.txt',
+    'driftcurve_ovro_NS_50.00.txt',
+    'driftcurve_ovro_NS_55.00.txt',
+    'driftcurve_ovro_NS_60.00.txt',
+    'driftcurve_ovro_NS_65.00.txt',
+    'driftcurve_ovro_NS_70.00.txt',
+    'driftcurve_ovro_NS_75.00.txt',
+    'driftcurve_ovro_NS_80.00.txt',
+    'driftcurve_ovro_NS_85.00.txt',
+    'driftcurve_ovro_NS_90.00.txt'
 ]
 
 
