@@ -72,6 +72,7 @@ def quicklook(filename, flatten, ant='252A'):
     plt.xlim(40, 85)
     plt.ylim(-0.025, 0.25)
     
+    plt.title(ant_ids[0])
     plt.xlabel("Frequency [MHz]")
     plt.ylabel("Flagged fraction")
     plt.minorticks_on()
@@ -82,6 +83,7 @@ def quicklook(filename, flatten, ant='252A'):
     
     plt.figure()
     plt.plot(f_leda, kurtosis(T_flagged, axis=0))
+    plt.title(ant_ids[0])
     plt.ylabel("Kurtosis")
     plt.xlabel("Frequency [MHz]")
     plt.xlim(40, 85)
