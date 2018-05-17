@@ -159,16 +159,12 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
           if all_lsts: T_flagged_plot = np.ma.concatenate((T_flagged, padding), axis=1)
           else: T_flagged_plot = T_flagged
 
-          #if p == 0 and ii == 0:
-          #    axim = origAX
-          #else:
-          #    axim = fig.add_subplot(2, 3, 3*p+ii+1, sharex=origAX, sharey=origAX)
           ax.set_yticks(yloc)
           ax.set_yticklabels(ylabel)
           ax.tick_params(axis='y', pad=2)
           
           if flatten:
-             abp = np.ma.median(T_flagged_plot, axis=0)
+             abp = np.ma.median(T_flagged_plot.data, axis=0)
              abp /= np.ma.median(abp)
              T_flagged_plot /= abp
              try:
