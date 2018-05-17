@@ -20,13 +20,15 @@ __author__    = "D.L.Wood"
 __maintainer__ = "Jayce Dowell"
 
 def usage(exitCode=None):
-	print """driftcurve.py - Generate a drift curve for a dipole at LWA-1 
+	print """driftcurve.py - Generate a drift curve for a dipole at LWA1 
 observing at a given frequency in MHz.
 
 Usage: driftcurve.py [OPTIONS]
 
 Options:
 -h, --help             Display this help information
+-s, --lwasv            Calculate for LWA-SV instead of LWA1
+-o, --ovro-lwa         Calculate for OVRO-LWA instead of LWA1
 -f, --freq             Frequency of the observations in MHz
                        (default = 74 MHz)
 -p, --polarization     Polarization of the observations (NS or EW; 
@@ -47,6 +49,7 @@ Options:
 def parseOptions(args):
 	config = {}
 	# Command line flags - default values
+	config['site'] = 'lwa1'
 	config['freq'] = 74.0e6
 	config['pol'] = 'EW'
 	config['GSM'] = True
@@ -57,7 +60,7 @@ def parseOptions(args):
 
 	# Read in and process the command line flags
 	try:
-		opts, arg = getopt.getopt(args, "hvf:p:lt:x", ["help", "verbose", "freq=", "polarization=", "lf-map", "time-step=", "do-plot",])
+		opts, arg = getopt.getopt(args, "hvsof:p:lt:x", ["help", "verbose", "lwasv", "ovro-lwa", "freq=", "polarization=", "lf-map", "time-step=", "do-plot",])
 	except getopt.GetoptError, err:
 		# Print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
@@ -69,6 +72,10 @@ def parseOptions(args):
 			usage(exitCode=0)
 		elif opt in ('-v', '--verbose'):
 			config['verbose'] = True
+		elif opt in ('-s', '--lwasv'):
+			config['site'] = 'lwasv'
+		elif opt in ('-o', '--ovro-lwa'):
+			config['site'] = 'ovro'
 		elif opt in ('-f', '--freq'):
 			config['freq'] = float(value)*1e6
 		elif opt in ('-p', '--polarization'):
@@ -98,9 +105,17 @@ def main(args):
 	# Parse command line
 	config = parseOptions(args)
 	
-	# Get the site information for LWA-1
-	sta = stations.lwa1
-	
+	# Get the site information
+	if config['site'] == 'lwa1':
+		sta = stations.lwa1
+	elif config['site'] == 'lwasv':
+		sta = stations.lwasv
+	elif config['site'] == 'ovro':
+		sta = stations.lwa1
+		sta.lat, sta.lon, sta.elev = ('37.2397808', '-118.2816819', 1183.4839)
+	else:
+		raise RuntimeError("Unknown site: %s" % config['site'])
+		
 	# Read in the skymap (GSM or LF map @ 74 MHz)
 	if config['GSM']:
 		smap = skymap.SkyMapGSM(freqMHz=config['freq']/1e6)
@@ -193,8 +208,8 @@ def main(args):
 	# plot results
 	if config['enableDisplay']:
 		pylab.figure(2)
-		pylab.title("Driftcurve: %s pol. @ %0.2f MHz - LWA-1" % \
-			(config['pol'], config['freq']/1e6))
+		pylab.title("Driftcurve: %s pol. @ %0.2f MHz - %s" % \
+			(config['pol'], config['freq']/1e6, config['site'].upper()))
 		pylab.plot(lstList, powListAnt, "ro",label="Antenna Pattern")
 		pylab.xlabel("LST [hours]")
 		pylab.ylabel("Temp. [K]")
@@ -202,7 +217,7 @@ def main(args):
 		pylab.draw()
 		pylab.show()
 	
-	outputFile = "driftcurve_%s_%s_%.2f.txt" % ('lwa1', config['pol'], config['freq']/1e6)
+	outputFile = "driftcurve_%s_%s_%.2f.txt" % (config['site'], config['pol'], config['freq']/1e6)
 	print "Writing driftcurve to file '%s'" % outputFile
 	mf = file(outputFile, "w")
 	for lst,pow in zip(lstList, powListAnt):
