@@ -17,16 +17,15 @@ from scipy.stats import kurtosis, scoreatpercentile as percentile
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
 
-def quicklook(filename, flatten):
+def quicklook(filename, flatten, ant='252A'):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
     
-    ant_ids = ['252A']
-    pol_id  = 'y'
+    ant_ids = [ant,]
       
-    print("Plotting...")
+    print("Plotting %s..." % ant_ids[0])
     fig, axes = plt.subplots(figsize=(12, 6), nrows=1, ncols=1)
     #plt.suptitle(h5.filename)
     
@@ -46,9 +45,6 @@ def quicklook(filename, flatten):
     if flatten:
         abp = np.ma.median(T_flagged.data, axis=0)
         abp /= np.ma.median(abp)
-        import pylab
-        pylab.plot(abp)
-        pylab.show()
         T_flagged /= abp
     clim = (percentile(T_flagged.compressed(), 5), percentile(T_flagged.compressed(), 95))
         
@@ -103,6 +99,8 @@ if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage(usage)
     o.set_description(__doc__)
+    o.add_option('--ant', dest='ant', action='store', default='252A', 
+      help='Name of the antenna to plot. Default: 252A')
     o.add_option('--flatten', dest='flatten', action='store_true', default=False,
       help='Apply a crude bandpass derived from the data. Default: False')
     
@@ -113,4 +111,4 @@ if __name__ == "__main__":
       exit(1)
     else: filename = args[0]
     
-    quicklook(filename, opts.flatten)
+    quicklook(filename, opts.flatten, ant=opts.ant)
