@@ -1,16 +1,61 @@
 #!/usr/bin/env python
 
-#  Usage: python argv.py outriggers_2018-04-02_07H52M55S.hkl 252 9 0.5 out_hickle_file
+#  Usage like: python bin_average.py outriggers_2018-04-02_07H52M55S.hkl 252 9 30
+# Creates a hickle file with averages, in the dav directory. Read them with dav/hkl_report.py
 
 import hickle, sys, numpy as np
 import matplotlib.pyplot as plt
 import math
 import bottleneck as bn
+import scipy.optimize
 
+
+if len(sys.argv) != 5:
+  print "Usage:", sys.argv[0], "hkl_file  antenna  LST_start av_length"
+  print "	hkl_file:	dumped from 01_plot_waterfall.py"
+  print "	antenna:	like 252, without the A/B"
+  print "	LST_start:	an LST that exists in the data"
+  print "	av_length:	time in hours to bin by, e.g. 1"
+  exit(1)
+
+def scrunch(a): 		# Do this is in a better numpy way. useful.rebin leaves off end values 
+  num_in_bin = 42		# 1MHz
+
+
+  if a.ndim == 1:
+    start = a.shape[0]-(a.shape[0]/num_in_bin)*num_in_bin
+    result = np.zeros(a.shape[0]/num_in_bin)
+    for i in range(start, a.shape[0], num_in_bin):  
+      result[i/num_in_bin] = np.ma.average(a[i: i+num_in_bin])
+
+  else:
+    start = a.shape[1]-(a.shape[1]/num_in_bin)*num_in_bin
+    result = np.zeros((a.shape[0], a.shape[1]/num_in_bin))
+    for i in range(start, a.shape[1], num_in_bin):
+      result[:, i/num_in_bin] = np.ma.average(a[:, i: i+num_in_bin], axis=1)
+
+  return result
+
+# Find the spectral index just by curve fitting
+def spectral_index(freq, temp):
+  def S(x, C, si):
+    return C*x**si
+
+  # Don't want masked values or NaNs or zeros
+  nan_temp = np.ma.filled(temp, np.nan)
+  f = freq[np.logical_or(np.isnan(nan_temp), (nan_temp!=0))]
+  s = temp[np.logical_or(np.isnan(nan_temp), (nan_temp!=0))]
+
+  try:
+    popt, pcov = scipy.optimize.curve_fit(S, f, s)
+  except: popt = ( 0, 0 )
+
+  return popt[1]
 
 def load_hkl(filename):
   return hickle.load(filename)
 d = load_hkl(sys.argv[1])
+
 
 print "LST", d["lsts"][0], "to", d["lsts"][-1]
 
@@ -22,7 +67,6 @@ use_bins = []
 for ind in range(len(vecTbins)-1):
   lst_ind = [i for i in range(len(d["lsts"])) if d["lsts"][i]>=vecTbins[ind] and d["lsts"][i]<vecTbins[ind+1]]
  
-
   if len(lst_ind) > 0: bin_ok = True
   else: bin_ok = False
   for i in lst_ind[1:]:
@@ -34,13 +78,15 @@ for ind in range(len(vecTbins)-1):
 Time_bins = []
 bp_window_t = 8
 av_data_dict = {}
-av_data_dict["Bins"] = []
-av_data_dict["Freq"] = d["frequencies"]
+av_data_dict["Bins"] = [ {} for i in range(len(vecTbins)-1) ]
+av_data_dict["Freqs"] = scrunch(d["frequencies"])
 fig = plt.figure() 
 	
 
+
 flagsp = 1
 for indD in range(len(dipoles)):
+
 	ant = sys.argv[2]+dipoles[indD]		#"255A"
 
 #print "file", sys.argv[1][0:len(sys.argv[1])-4]
@@ -54,40 +100,46 @@ for indD in range(len(dipoles)):
 
 #print "T_bins", vecTbins
 
-	data_averaged =  np.zeros((len(vecTbins)-1,len(d["frequencies"])))
-	rms_av = np.zeros((len(vecTbins)-1,len(d["frequencies"])))
-	
+	freq_scrunched = scrunch(d["frequencies"])
 
+	data_averaged =  np.ma.zeros(len(freq_scrunched))
+	rms_av = np.zeros(len(freq_scrunched))
+	
 	for ind in range(len(vecTbins)-1):
 
  		if not use_bins[ind]: continue
 
-		time_bin = {}
 		
 		indexT = [i for i in range(len(d["lsts"])) if d["lsts"][i]>=vecTbins[ind] and d["lsts"][i]<vecTbins[ind+1]]
 
-		time_bin["Time"] = (d["lsts"][indexT[0]], d["lsts"][indexT[-1]], len(indexT))
-		
-		data_averaged[ind][:] = np.ma.average(d[ant][indexT][:],axis=0)  	#averaging of the masked array. Masked entries are ignored
- 		time_bin[ant] = data_averaged[ind]
+		av_data_dict["Bins"][ind]["Time"] = (d["lsts"][indexT[0]], d["lsts"][indexT[-1]], len(indexT))
 
-		for indnu in range(len(d["frequencies"])):
+		d_scrunched = scrunch(d[ant][indexT])					# Averages over 1MHz freq bins.  Masked entries are ignored
+		data_averaged = np.ma.average(d_scrunched, axis=0)  			# averaging over time
+											# seems like if channel is all masked it becomes 0
+  		num_in = np.ma.MaskedArray.count(data_averaged)
+  		if num_in != len(data_averaged):
+    		  print "ERROR: There are masked values in averaged array"
+	          exit(1)
+		if len(data_averaged[np.isnan(data_averaged)]) != 0:
+   		  print "ERROR: There are NaN values in averaged array"
+		  exit(1)
+
+ 		av_data_dict["Bins"][ind][ant] = data_averaged
+
+		flat = bn.move_nanmean(d_scrunched, bp_window_t, axis=0)
+		for indnu in range(d_scrunched.shape[1]):
 			#print "indnu", d[ant][indexT,indnu].shape
-			flat = bn.move_nanmean(d[ant][indexT,indnu], bp_window_t,axis=0)
-			flat = d[ant][indexT,indnu]-flat
-			flat = np.ma.filled(flat, np.nan)			# Get rid of masked and NaN, then do std
-			flat = flat[np.logical_not(np.isnan(flat))]
-			if len(flat) == 0: rms_av[ind][indnu] = np.nan
-			else: rms_av[ind][indnu] = np.std(flat)
-
+			flat_channel = d_scrunched[:, indnu]-flat[ :, indnu]
+			rms_av[indnu] = np.std(flat_channel[bp_window_t:])
+			
 	#		print "rms",rms_av[ind][indnu]
 	#	plt.subplot(len(vecTbins)-1,2,flagsp-2*(len(vecTbins)-1)*indD+indD)
 	#	plt.subplot(1,2,flagsp-2*(len(vecTbins)-1)*indD+indD)
 		
-		time_bin[ant+"_RMS"] = rms_av[ind]
-		time_bin[ant+"_weighted"] = data_averaged[ind]/rms_av[ind]**2
-		av_data_dict["Bins"].append(time_bin)
-	
+		av_data_dict["Bins"][ind][ant+"_RMS"] = rms_av
+		av_data_dict["Bins"][ind][ant+"_SI"] = spectral_index(freq_scrunched[19:], data_averaged[19:])
+		
 		#plt.subplot(2,2,flagsp)
 	
 		#flagsp=flagsp+1
@@ -131,7 +183,12 @@ for indD in range(len(dipoles)):
 
 #print "Time Bins", Time_bins
 
+
 #print av_data_dict
+for i in range(len(vecTbins)-1):
+  if len(av_data_dict["Bins"][i].keys()) == 0:
+    av_data_dict["Bins"][i]["Not usable"] = ""
+
 hickle.dump(av_data_dict, "dav/averaged_"+sys.argv[1][0:len(sys.argv[1])-4]+ "_ant_" +sys.argv[2]+"_dTh_" +str(dT)+ ".hkl")
 
 #### check the hkl file
