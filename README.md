@@ -25,6 +25,9 @@ This is made a bit easier if you set a variable in your terminal like so:
 > ./02_plot_spectra.py $fn
 ```
 
+[More documentation](../../wiki)
+
+
 
 ## Script overview
 

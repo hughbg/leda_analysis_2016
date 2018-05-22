@@ -10,9 +10,13 @@ import numpy
 import pylab
 import getopt
 
-from lsl import skymap, astro
+from scipy.interpolate import interp1d
+
+from lsl import astro
 from lsl.common import stations
-from lsl.common.paths import data as dataPath
+
+import skymap
+dataPath = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
 
 __revision__ = "$Revision: 94 $"
 __version__  = "0.1"
@@ -33,13 +37,15 @@ Options:
                        (default = 74 MHz)
 -p, --polarization     Polarization of the observations (NS or EW; 
                        default = EW)
--l, --lf-map           Use LF map instead of GSM
+-e, --empirical        Enable empirical corrections to the dipole model
+                       (valid from 35 to 80 MHz, default = no)
+-l, --lfsm             Use LFSM instead of GSM
 -t, --time-step        Time step of simulations in minutes (default = 
                        10)
 -x, --do-plot          Plot the driftcurve data
 -v, --verbose          Run driftcurve in vebose mode
 """
-
+	
 	if exitCode is not None:
 		sys.exit(exitCode)
 	else:
@@ -52,20 +58,21 @@ def parseOptions(args):
 	config['site'] = 'lwa1'
 	config['freq'] = 74.0e6
 	config['pol'] = 'EW'
+	config['corr'] = False
 	config['GSM'] = True
 	config['tStep'] = 10.0
 	config['enableDisplay'] = False
 	config['verbose'] = False
 	config['args'] = []
-
+	
 	# Read in and process the command line flags
 	try:
-		opts, arg = getopt.getopt(args, "hvsof:p:lt:x", ["help", "verbose", "lwasv", "ovro-lwa", "freq=", "polarization=", "lf-map", "time-step=", "do-plot",])
+		opts, arg = getopt.getopt(args, "hvsof:p:elt:x", ["help", "verbose", "lwasv", "ovro-lwa", "freq=", "polarization=", "empirical", "lfsm", "time-step=", "do-plot",])
 	except getopt.GetoptError, err:
 		# Print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
 		usage(exitCode=2)
-	
+		
 	# Work through opts
 	for opt, value in opts:
 		if opt in ('-h', '--help'):
@@ -80,7 +87,9 @@ def parseOptions(args):
 			config['freq'] = float(value)*1e6
 		elif opt in ('-p', '--polarization'):
 			config['pol'] = value.upper()
-		elif opt in ('-l', '--lf-map'):
+		elif opt in ('-e', '--empirical'):
+			config['corr'] = True
+		elif opt in ('-l', '--lfsm'):
 			config['GSM'] = False
 		elif opt in ('-t', '--time-step'):
 			config['tStep'] = float(value)
@@ -88,17 +97,66 @@ def parseOptions(args):
 			config['enableDisplay'] = True
 		else:
 			assert False
-	
+			
 	# Add in arguments
 	config['args'] = arg
-
+	
 	# Check the validity of arguments
 	if config['pol'] not in ('NS', 'EW'):
 		print "Invalid polarization: '%s'" % config['pol']
 		usage(exitCode=2)
-
+		
 	# Return configuration
 	return config
+
+
+def interpextrap1d(x, y, kind='linear'):
+	"""
+	Combine the scipy.interplate.interp1d function with linear extrapolation
+	to create a combination interpolation/extrapolation function.
+	
+	.. note:: Is this a wise thing to do for the empirical corrections to
+	the dipole gain pattern?
+	"""
+	
+	# Get the upper and lower bounds of x so we know where to interpolate
+	ll, ul = x[0], x[-1]
+	
+	# Inside x - standard interp1d
+	iFunc = interp1d(x, y, kind=kind, bounds_error=False)
+	# Outside x - linear extrapolation
+	## < Lower limit
+	lFit = numpy.polyfit(x[:2], y[:2], 1)
+	lFunc = lambda x: numpy.polyval(lFit, x)
+	## > Upper limit
+	uFit = numpy.polyfit(x[-2:], y[-2:], 1)
+	uFunc = lambda x: numpy.polyval(uFit, x)
+	
+	# Build up the composite function to return
+	def func(xe):
+		## Check and see if we have a numpy.array or list.  If not, make one
+		try:
+			len(xe)
+			convert = False
+		except TypeError:
+			xe = numpy.array([xe,])
+			convert = True
+			
+		## Evaluate the function in the various regimes
+		out = iFunc(xe)
+		bad = numpy.where( xe < ll )
+		out[bad] = lFunc(xe[bad])
+		bad = numpy.where( xe > ul )
+		out[bad] = uFunc(xe[bad])
+		
+		## Deal with signal values again
+		if convert:
+			xe = xe[0]
+			
+		return out
+		
+	# Done
+	return func
 
 
 def main(args):
@@ -122,9 +180,9 @@ def main(args):
 		if config['verbose']:
 			print "Read in GSM map at %.2f MHz of %s pixels; min=%f, max=%f" % (config['freq']/1e6, len(smap.ra), smap._power.min(), smap._power.max())
 	else:
-		smap = skymap.SkyMap(freqMHz=config['freq']/1e6)
+		smap = skymap.SkyMapLFSM(freqMHz=config['freq']/1e6)
 		if config['verbose']:
-			print "Read in LF map at %.2f MHz of %d x %d pixels; min=%f, max=%f" % (config['freq']/1e6, smap.numPixelsX, smap.numPixelsY, smap._power.min(), smap._power.max())
+			print "Read in LFSM map at %.2f MHz of %d x %d pixels; min=%f, max=%f" % (config['freq']/1e6, smap.numPixelsX, smap.numPixelsY, smap._power.min(), smap._power.max())
 	
 	# Get the emperical model of the beam and compute it for the correct frequencies
 	beamDict = numpy.load(os.path.join(dataPath, 'lwa1-dipole-emp.npz'))
@@ -147,15 +205,42 @@ def main(args):
 	if config['verbose']:
 		print "Beam Coeffs. X: a=%.2f, b=%.2f, g=%.2f, d=%.2f" % (alphaH, betaH, gammaH, deltaH)
 		print "Beam Coeffs. Y: a=%.2f, b=%.2f, g=%.2f, d=%.2f" % (alphaE, betaE, gammaE, deltaE)
-	
-	def BeamPattern(az, alt):
+		
+	if config['corr']:
+		corrDict = numpy.load(os.path.join(dataPath, 'lwa1-dipole-cor.npz'))
+		cFreqs = corrDict['freqs']
+		cAlts  = corrDict['alts']
+		if corrDict['degrees'].item():
+			cAlts *= numpy.pi / 180.0
+		cCorrs = corrDict['corrs']
+		corrDict.close()
+		
+		if config['freq']/1e6 < cFreqs.min()-11 or config['freq']/1e6 > cFreqs.max()+11:
+			print "WARNING: Input frequency of %.3f MHz is out of range, skipping correction"
+			corrFnc = None
+		else:
+			fCors = cAlts*0.0
+			for i in xrange(fCors.size):
+				ffnc = interpextrap1d(cFreqs, cCorrs[:,i])
+				fCors[i] = ffnc(config['freq']/1e6)
+			corrFnc = interp1d(cAlts, fCors, bounds_error=False)
+			
+	else:
+		corrFnc = None
+		
+	def BeamPattern(az, alt, corr=corrFnc):
 		zaR = numpy.pi/2 - alt*numpy.pi / 180.0 
 		azR = az*numpy.pi / 180.0
-
+		
+		c = 1.0
+		if corrFnc is not None:
+			c = corrFnc(alt*numpy.pi / 180.0)
+			c = numpy.where(numpy.isfinite(c), c, 1.0)
+			
 		pE = (1-(2*zaR/numpy.pi)**alphaE)*numpy.cos(zaR)**betaE + gammaE*(2*zaR/numpy.pi)*numpy.cos(zaR)**deltaE
 		pH = (1-(2*zaR/numpy.pi)**alphaH)*numpy.cos(zaR)**betaH + gammaH*(2*zaR/numpy.pi)*numpy.cos(zaR)**deltaH
 
-		return numpy.sqrt((pE*numpy.cos(azR))**2 + (pH*numpy.sin(azR))**2)
+		return c*numpy.sqrt((pE*numpy.cos(azR))**2 + (pH*numpy.sin(azR))**2)
 
 	if config['enableDisplay']:
 		az = numpy.zeros((90,360))
@@ -210,7 +295,7 @@ def main(args):
 		pylab.figure(2)
 		pylab.title("Driftcurve: %s pol. @ %0.2f MHz - %s" % \
 			(config['pol'], config['freq']/1e6, config['site'].upper()))
-		pylab.plot(lstList, powListAnt, "ro",label="Antenna Pattern")
+		pylab.plot(lstList, powListAnt, "ro", label="Antenna Pattern")
 		pylab.xlabel("LST [hours]")
 		pylab.ylabel("Temp. [K]")
 		pylab.grid(2)
@@ -221,7 +306,7 @@ def main(args):
 	print "Writing driftcurve to file '%s'" % outputFile
 	mf = file(outputFile, "w")
 	for lst,pow in zip(lstList, powListAnt):
-		mf.write("%f  %f\n" % (lst,pow))
+		mf.write("%f  %f\n" % (lst, pow))
 	mf.close()
 
 
