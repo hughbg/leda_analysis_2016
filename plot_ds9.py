@@ -54,7 +54,7 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts):
       ovro.date = d
       sun.compute(ovro)
       gal_center.compute(ovro)
-      if sun.alt > -15*np.pi/180 or gal_center.alt > -15*np.pi/180:
+      if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
         unusable_lsts.append(i)
   
     # Delete sun up LSTS
