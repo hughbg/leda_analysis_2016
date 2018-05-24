@@ -128,6 +128,7 @@ for indD in range(len(dipoles)):
  		av_data_dict["Bins"][ind][ant] = data_averaged
 
 		flat = bn.move_nanmean(d_scrunched, bp_window_t, axis=0)
+		flat = np.roll(flat, -bp_window_t/2+1, axis=0)
 		for indnu in range(d_scrunched.shape[1]):
 			#print "indnu", d[ant][indexT,indnu].shape
 			flat_channel = d_scrunched[:, indnu]-flat[ :, indnu]

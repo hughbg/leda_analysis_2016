@@ -251,7 +251,9 @@ def clip(data):
   cut = data.shape[1]/3
   chunk = data[:, data.shape[1]-cut:]
   chunk = bn.move_nanmean(chunk, bp_window_t, axis=0)
+  chunk = np.roll(chunk, -bp_window_t/2+1, axis=0)
   chunk = bn.move_nanmean(chunk, bp_window_f, axis=1)
+  chunk = np.roll(chunk, -bp_window_f/2+1, axis=1)
   chunk = data[:, data.shape[1]-cut:]-chunk
   chunk = chunk[bp_window_t:, bp_window_f:]		# Because these edge values are nan now
   chunk = np.ravel(chunk)
@@ -263,7 +265,9 @@ def clip(data):
 
   # Mask the data. Have to flatten the data to find where to mask it
   flat = bn.move_nanmean(data, bp_window_t, axis=0)
+  flat = np.roll(flat, -bp_window_t/2+1, axis=0)
   flat = bn.move_nanmean(flat, bp_window_f, axis=1)
+  flat = np.roll(flat, -bp_window_f/2+1, axis=1)
   flat = data-flat;
   m = np.ma.mean(flat[bp_window_t:, bp_window_f:])			
   flat[:bp_window_t, :] = m		# Because these edge values are now Nan due to move_nanmean
@@ -277,7 +281,8 @@ def clip(data):
 def clip1(data):
     nstart = np.ma.count(data)
     for i in range(data.shape[1]):
-      flat = bn.move_nanmean(data[:, i], params.sc_bp_window_t)
+      flat = bn.move_nanmean(data[:, i], params.sc_bp_window_t, axis=-1)
+      flat = np.roll(flat, -params.sc_bp_window_t/2+1, axis=-1)
       flat = data[:, i]-flat			# this will also insert the mask
       std = np.std(flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))])
       if not np.isnan(float(std)):
