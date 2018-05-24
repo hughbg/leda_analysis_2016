@@ -7,7 +7,9 @@ def filter(data, size, axis=0):
   # If the input is a masked array, the mask will be lost after filtering
 
   if not params.median:
-    return bn.move_nanmean(data, size, axis=axis)
+    if size%2 == 0: size -= 1
+    d = bn.move_nanmean(data, size, axis=axis)
+    return np.roll(d, -size/2+1, axis=axis)
   else:
     d = np.zeros((data.shape[0], data.shape[1]))
     if size%2 == 0: size -= 1
