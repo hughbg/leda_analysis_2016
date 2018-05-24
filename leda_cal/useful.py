@@ -191,6 +191,7 @@ def add_uncertainties(data):
 
   for i in range(data.shape[1]):
     flat = bn.move_nanmean(data[:, i], params.un_bp_window_t, axis=0)
+    flat = np.roll(flat, -params.un_bp_window_t/2+1, axis=0)
     flat = data[:, i]-flat
     flat = np.ma.ravel(flat)
     flat = flat[np.logical_not(flat.mask)]
@@ -229,7 +230,9 @@ def statistics(data):	# I think 8 is better for flattening
 
   # Now can use the demeaning
   flat = bn.move_nanmean(data, params.st_bp_window_t, axis=0)
+  flat = np.roll(flat, -params.st_bp_window_t/2+1, axis=0)
   flat = bn.move_nanmean(flat, params.st_bp_window_f, axis=1)
+  flat = np.roll(flat, -params.st_bp_window_f/2+1, axis=1)
   flat = data-flat
   flat = np.ma.ravel(flat)
   flat = flat[np.logical_not(flat.mask)]
