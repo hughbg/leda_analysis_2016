@@ -1,0 +1,40 @@
+252a balun obs sequence
+
+vna cal 1
+measure 1
+5 reference sources
+measure 2
+vna cal 2
+measure 3
+5 reference sources
+measure 4
+
+*.txt files contain data for panels selected for screen display. These contain S11 mag & phase, and impedances R & X.
+
+Columnar data begin on line 23.
+
+File naming convention:
+
+<antenna ID>.<load>.<series no.>.<file type>
+
+antenna ID:  last digit of the antenna number and signal path ID (A/B).
+load:        47 pF capacitor, 66 pF capacitor, 19.46 ohm resistor,
+             49.99 ohm resistor, or 194.65 ohm resistor.
+series no.:  For measurements, sequential number.
+             For reference sources, indicates between which measurements 
+             the data was acquired, e.g., <X-Y>= "1-2." for m1 and m2             
+             the data was acquired, e.g., <X.Y.>= "1.2." for m1 and m2
+file type:   .txt or .s2p  
+
+
+vna cal 1 -> vna measure 2   vna temperature:     52.0 - 53.0 C
+                             ambient temperature: 26.5 - 30.0 C
+vna cal 3 -> vna measure 4   vna temperature:     51.0 - 52.0 C
+                             ambient temperature: 25.1 - 26.3 C
+
+
+
+
+
+
+
