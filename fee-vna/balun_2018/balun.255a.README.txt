@@ -1,0 +1,31 @@
+252a balun obs sequence
+
+vna cal 1
+measure 1
+5 reference sources
+measure 2
+vna cal 2
+measure 3
+5 reference sources
+measure 4
+
+Starting with "measure 3", record .txt only; VNA slow to access large directories.
+
+*.txt files contain data for panels selected for screen display. These contain S11 mag & phase, and impedances R & X.
+
+Columnar data begin on line 23.
+
+File naming convention:
+
+<antenna ID>.<load>.<file type>
+
+antenna ID:  last digit of the antenna number and signal path ID (A/B).
+load:        47 pF capacitor, 66 pF capacitor, 19.46 ohm resistor,
+             49.99 ohm resistor, or 194.65 ohm resistor.
+file type:   .txt or .s2p  
+
+
+
+
+
+
