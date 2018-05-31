@@ -23,6 +23,8 @@ import bottleneck as bn
 from filter import filter
 from params import params
 
+import robust
+
 def fit_poly(x, y, n=5, log=False):
     """ Fit a polynomial to x, y data 
     
@@ -72,7 +74,7 @@ def check_mask(f):
         try:
             mask = data.mask
         except AttributeError:
-            data = np.ma.array(data)
+            data = np.ma.array(data, mask=np.zeros(data.shape, dtype=np.bool))
             mask = data.mask
             args = list(args)
             args[0] = data
@@ -261,7 +263,7 @@ def clip(data):
 
   # Clipping values
   dmin = -params.sigma*np.std(chunk)
-  dmax = params.sigma*np.std(chunk); 
+  dmax = params.sigma*np.std(chunk)
 
   # Mask the data. Have to flatten the data to find where to mask it
   flat = bn.move_nanmean(data, bp_window_t, axis=0)
@@ -280,7 +282,7 @@ def clip(data):
 
 def clip1(data):
     nstart = np.ma.count(data)
-    for i in range(data.shape[1]):
+    for i in xrange(data.shape[1]):
       flat = bn.move_nanmean(data[:, i], params.sc_bp_window_t, axis=-1)
       flat = np.roll(flat, -params.sc_bp_window_t/2+1, axis=-1)
       flat = data[:, i]-flat			# this will also insert the mask
@@ -293,7 +295,32 @@ def clip1(data):
       print "ERROR: number of points flagged went DOWN after clipping!"
       exit(1)
 
-   
+@check_mask
+def clip2(data, robust=True):
+    """
+    Alternate sigma-clipping flagger for spectrometer data.  This function
+    assumes that the data have already been bandpassed in frequency and 
+    time and then uses a iterative method to find and flag outliters.
+    """
+    
+    for j in xrange(params.sc_passes):
+        mask = data.mask*1
+        
+        for i in range(data.shape[1]):
+            i0 = max([0, i-params.sc_bp_window_f/2])
+            i1 = min([i+params.sc_bp_window_f/2, data.shape[1]-1])
+            try:
+                assert(robust)
+                mn, st = robust.mean(data[:,i0:i1+1]), robust.std(data[:,i0:i1+1])
+            except:
+                mn, st = np.ma.mean(data[:,i0:i1+1]), np.ma.std(data[:,i0:i1+1])
+            bad = np.where(np.abs(data[:,i]-1) > params.sigma*st)[0]
+            mask[bad,i] |= True
+                
+        data.mask = mask*1
+    return data.mask
+
+
 def do_dtv_flagging(data, freqs):
 
   nstart = np.ma.count(data)
@@ -309,6 +336,44 @@ def do_dtv_flagging(data, freqs):
     print "ERROR: number of points flagged went DOWN after DTV flagging!"
     exit(1)    
 
+@check_mask
+def do_dtv_flagging2(data, freqs):
+    """
+    Alternate DTV flagger for spectrometer data.  This function uses the
+    constrastin power between the DTV band edges (outer 0.25 MHz) and the 
+    DTV band centers (inner 4.5 MHz) to identify DTV flares.
+    """
+    
+    mask = data.mask*1
+    
+    for ledge in (54, 60, 66, 76, 82):
+         uedge = ledge + 6
+         band = np.where( (freqs>=ledge) & (freqs<=uedge) )[0]
+         trns = np.where( (freqs>=ledge+0.25) & (freqs<=uedge-0.25) )[0]
+         empt = np.where( ((freqs>=ledge-0.25) & (freqs<ledge+0.25)) | ((freqs>uedge-0.25) & (freqs<=uedge+0.25)) )[0]
+         
+         pB = np.mean(data.data[:,band], axis=1)
+         pT = np.mean(data.data[:,trns], axis=1)
+         pE = np.mean(data.data[:,empt], axis=1)
+         
+         #import pylab
+         #pylab.plot(pB-pE)
+         #pylab.plot(pT-pE)
+         #pylab.plot(pE-1)
+         #pylab.plot(pE*0 + 3*pE.std())
+         #pylab.show()
+         
+         st = np.std(pE)
+         bad = np.where( np.abs(pT-pE) > 3*st )[0]
+         for b in bad:
+             mask[b,band] |= True
+             if b > 1:
+                 mask[b-1,band] |= True
+             if b < data.shape[0]-2:
+                 mask[b+1,band] |= True
+                 
+    data.mask = mask*1
+    return data.mask
 
 
 @check_mask
@@ -338,18 +403,41 @@ def rfi_flag(data, freqs=None):
     
     
     if params.do_sum_threshold:
-      bpass = estimate_bandpass(data)
-      to_flag = data / bpass
-
+      try:
+        to_flag
+      except NameError:
+        bpass = estimate_bandpass(data)
+        to_flag = data / bpass
+        
       to_flag.mask = sum_threshold(to_flag)
       to_flag.mask = flag_fraction(to_flag)
       to_flag.mask = flag_window(to_flag)
-    
+      
       data.mask = to_flag.mask
 
-    if params.do_sigma_clip: clip1(data)		# sigma clipping
-
-    if params.do_dtv_flagging and freqs is not None: do_dtv_flagging(data, freqs) 
+    if params.do_sigma_clip:
+      try:
+        to_flag
+      except NameError:
+        bpass = estimate_bandpass(data)
+        to_flag = data / bpass
+        
+      to_flag.mask = clip2(to_flag)
+      to_flag.mask = flag_fraction(to_flag)
+      to_flag.mask = flag_window(to_flag)
+      
+      data.mask = to_flag.mask
+      
+    if params.do_dtv_flagging and freqs is not None:
+      try:
+        to_flag
+      except NameError:
+        bpass = estimate_bandpass(data)
+        to_flag = data / bpass
+         
+      to_flag.mask = do_dtv_flagging2(to_flag, freqs) 
+      
+      data.mask = to_flag.mask
 
     # Make sure all Nan are masked
     data.mask = np.logical_or(data.mask, np.isnan(data))

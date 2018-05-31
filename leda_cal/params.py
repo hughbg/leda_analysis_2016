@@ -55,7 +55,8 @@ class Params(object):
     # Parameters for flagging using sigma clipping
     self.sc_bp_window_f = self.st_bp_window_f			# Sliding windows in time and frequency
     self.sc_bp_window_t = self.st_bp_window_t
-    self.sigma = 4						# Clip above/below this
+    self.sc_passes = 3					# Number of passes to make through the clipper
+    self.sigma = 3						# Clip above/below this
 
     # Uncertainties. 
     self.un_bp_window_t = self.st_bp_window_t		# Window in time for flattening 1 channel to get RMS of channel
@@ -74,6 +75,18 @@ class Params(object):
     self.histogram_length = 5000			# Length for gauss fitting histogram of waterfall plot data
 
     self.dtv_frequencies = [ 54.31, 60.31, 66.31, 76.31, 82.31 ]	# Pilot tone
+    
+  def __repr__(self):
+    order = ['sun_down', 'galaxy_down', 'do_sum_threshold', 'do_sigma_clip', 'do_dtv_flagging', 
+             'thr_f', 'thr_t', 'rho', 'st_bp_window_f', 'st_bp_window_t', 'max_frac_f', 
+             'max_frac_t', 'thr_max', 'thr_min', 'scales', 'median', 'sc_bp_window_f', 
+             'sc_bp_window_t', 'sigma', 'un_bp_window_t', 'ds9_clip', 
+             'stats_bp_window_f', 'stats_bp_window_t', 'histogram_length', 'dtv_frequencies']
+    
+    output = ""
+    for key in order:
+      output += "%s: %s\n" % (key, getattr(self, key, None))
+    return output
 
 
 params = Params()
