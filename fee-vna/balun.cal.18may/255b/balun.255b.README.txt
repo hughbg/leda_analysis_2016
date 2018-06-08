@@ -7,7 +7,9 @@ measure 2
 vna cal 2
 measure 3
 5 reference sources
-measure 4
+measure 4  (metal left in ant.)
+measure 5
+
 
 *.txt files contain data for panels selected for screen display. These contain S11 mag & phase, and impedances R & X.
 

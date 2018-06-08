@@ -3,11 +3,21 @@
 vna cal 1
 measure 1
 5 reference sources
-measure 2
+
 vna cal 2
-measure 3
+measure 2
 5 reference sources
+
+vna cal 3
 measure 4
+5 reference sources
+measure 5*
+
+vna cal 4
+measure 6
+5 reference sources
+measure 7*
+
 
 *.txt files contain data for panels selected for screen display. These contain S11 mag & phase, and impedances R & X.
 

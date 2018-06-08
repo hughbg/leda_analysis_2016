@@ -27,7 +27,7 @@ file type:   .txt or .s2p
 
 vna cal 1 -> vna measure 2   vna temperature:     59.0 - 59.0 C
                              ambient temperature: 29.3 - 30.2 C
-vna cal 2 -> vna measure 4   vna temperature:     59.0 - 60.0 C
+vna mea.2 -> vna measure 3   vna temperature:     59.0 - 60.0 C
                              ambient temperature: 30.0 - 32.8 C
 
 
