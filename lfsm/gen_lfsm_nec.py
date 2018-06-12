@@ -14,39 +14,39 @@ import numpy as np
 import hickle as hkl
 
 for freq in xrange(30, 95, 5):
-    os.system("python driftcurve.py -o -l -f %i -p EW" % freq)
-    os.system("python driftcurve.py -o -l -f %i -p NS" % freq)
+    os.system("python driftcurve.py -o -l -f %i -p EW -g lfsm_nec" % freq)
+    os.system("python driftcurve.py -o -l -f %i -p NS -g lfsm_nec" % freq)
 
 files_ew = [
-    'driftcurve_ovro_EW_30.00.txt',
-    'driftcurve_ovro_EW_35.00.txt',
-    'driftcurve_ovro_EW_40.00.txt',
-    'driftcurve_ovro_EW_45.00.txt',
-    'driftcurve_ovro_EW_50.00.txt',
-    'driftcurve_ovro_EW_55.00.txt',
-    'driftcurve_ovro_EW_60.00.txt',
-    'driftcurve_ovro_EW_65.00.txt',
-    'driftcurve_ovro_EW_70.00.txt',
-    'driftcurve_ovro_EW_75.00.txt',
-    'driftcurve_ovro_EW_80.00.txt',
-    'driftcurve_ovro_EW_85.00.txt',
-    'driftcurve_ovro_EW_90.00.txt'
+    'driftcurve_ovro_EW_30.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_35.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_40.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_45.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_50.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_55.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_60.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_65.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_70.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_75.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_80.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_85.00_lfsm_nec.txt',
+    'driftcurve_ovro_EW_90.00_lfsm_nec.txt'
 ]
 
 files_ns = [
-    'driftcurve_ovro_NS_30.00.txt',
-    'driftcurve_ovro_NS_35.00.txt',
-    'driftcurve_ovro_NS_40.00.txt',
-    'driftcurve_ovro_NS_45.00.txt',
-    'driftcurve_ovro_NS_50.00.txt',
-    'driftcurve_ovro_NS_55.00.txt',
-    'driftcurve_ovro_NS_60.00.txt',
-    'driftcurve_ovro_NS_65.00.txt',
-    'driftcurve_ovro_NS_70.00.txt',
-    'driftcurve_ovro_NS_75.00.txt',
-    'driftcurve_ovro_NS_80.00.txt',
-    'driftcurve_ovro_NS_85.00.txt',
-    'driftcurve_ovro_NS_90.00.txt'
+    'driftcurve_ovro_NS_30.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_35.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_40.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_45.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_50.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_55.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_60.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_65.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_70.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_75.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_80.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_85.00_lfsm_nec.txt',
+    'driftcurve_ovro_NS_90.00_lfsm_nec.txt'
 ]
 
 
@@ -76,6 +76,6 @@ for filename in files_ns:
         ii += 1
 
 
-hkl.dump(lfsm_ew, 'lfsm_ew.hkl')
-hkl.dump(lfsm_ns, 'lfsm_ns.hkl')
+hkl.dump(lfsm_ew, 'lfsm_nec_ew.hkl')
+hkl.dump(lfsm_ns, 'lfsm_nec_ns.hkl')
 
