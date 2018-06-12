@@ -15,13 +15,13 @@ from scipy import interpolate
 from scipy.optimize import curve_fit
 
 class SkyModelGSM(object):
-    """ GSM sky model class"""
+    """GSM sky model class using the NEC4 LWA dipole model"""
     
     # Relative path to the data
-    _path = 'gsm'
+    _path = 'lfsm'
     
     # Common names for the .hkl files
-    _name = 'gsm'
+    _name = 'gsm_nec'
     
     def __init__(self, pol='x', npol=7):
         self.pol = pol
@@ -107,39 +107,77 @@ class SkyModelGSM(object):
         np.apply_along_axis(self._generate_tsky, 0, tsky, lst, freqs)
         return tsky
 
-class SkyModelLFSM(SkyModelGSM):
-    """ LFSM sky model class"""
+class SkyModelGSMEmp(SkyModelGSM):
+    """GSM sky model class the NEC4 LWA dipole model, plus empirical corrections"""
     
     # Relative path to the data
     _path = 'lfsm'
     
     # Common names for the .hkl files
-    _name = 'lfsm'
+    _name = 'gsm_emp'
+
+class SkyModelLFSM(SkyModelGSM):
+    """LFSM sky model class the NEC4 LWA dipole model"""
+    
+    # Relative path to the data
+    _path = 'lfsm'
+    
+    # Common names for the .hkl files
+    _name = 'lfsm_nec'
+
+class SkyModelLFSMEmp(SkyModelGSM):
+    """LFSM sky model class the NEC4 LWA dipole model, plus empirical corrections"""
+    
+    # Relative path to the data
+    _path = 'lfsm'
+    
+    # Common names for the .hkl files
+    _name = 'lfsm_emp'
 
 # Backwards compatibility
 SkyModel = SkyModelGSM
+
+# Completeness
+SkyModelGSMNEC = SkyModelGSM
+SkyModelLFSMNEC = SkyModelLFSM
 
 if __name__ == '__main__':        
     sgx = SkyModelGSM('x')
     sgy = SkyModelGSM('y')
     slx = SkyModelLFSM('x')
     sly = SkyModelLFSM('y')
+    agx = SkyModelGSMEmp('x')
+    agy = SkyModelGSMEmp('y')
+    alx = SkyModelLFSMEmp('x')
+    aly = SkyModelLFSMEmp('y')
     f = np.linspace(30, 90, 100) * 1e6
 
     gxx, gyy = [], []
     lxx, lyy = [], []
+    axx, ayy = [], []
+    bxx, byy = [], []
 
     for ii in range(0, 24):
         gxx.append(sgx.generate_tsky(ii, f))
         gyy.append(sgy.generate_tsky(ii, f))
         lxx.append(slx.generate_tsky(ii, f))
         lyy.append(sly.generate_tsky(ii, f))
+        axx.append(agx.generate_tsky(ii, f))
+        ayy.append(agy.generate_tsky(ii, f))
+        bxx.append(alx.generate_tsky(ii, f))
+        byy.append(aly.generate_tsky(ii, f))
 
     gxx, gyy = np.array(gxx), np.array(gyy)
     lxx, lyy = np.array(lxx), np.array(lyy)
+    axx, ayy = np.array(axx), np.array(ayy)
+    bxx, byy = np.array(bxx), np.array(byy)
 
     plt.plot(gxx[:, 0], linestyle='-', color='b')
     plt.plot(gyy[:, 0], linestyle='-', color='g')
     plt.plot(lxx[:, 0], linestyle='--', color='b')
     plt.plot(lyy[:, 0], linestyle='--', color='g')
+    plt.plot(axx[:, 0], linestyle='-', color='r')
+    plt.plot(ayy[:, 0], linestyle='-', color='k')
+    plt.plot(bxx[:, 0], linestyle='--', color='r')
+    plt.plot(byy[:, 0], linestyle='--', color='k')
     plt.show()
