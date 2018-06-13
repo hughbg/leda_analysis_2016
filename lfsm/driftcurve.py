@@ -42,6 +42,7 @@ Options:
 -l, --lfsm             Use LFSM instead of GSM
 -t, --time-step        Time step of simulations in minutes (default = 
                        10)
+-g, --tag              Optional tag at the end of the filename (default = None)
 -x, --do-plot          Plot the driftcurve data
 -v, --verbose          Run driftcurve in vebose mode
 """
@@ -61,13 +62,14 @@ def parseOptions(args):
 	config['corr'] = False
 	config['GSM'] = True
 	config['tStep'] = 10.0
+	config['tag'] = None
 	config['enableDisplay'] = False
 	config['verbose'] = False
 	config['args'] = []
 	
 	# Read in and process the command line flags
 	try:
-		opts, arg = getopt.getopt(args, "hvsof:p:elt:x", ["help", "verbose", "lwasv", "ovro-lwa", "freq=", "polarization=", "empirical", "lfsm", "time-step=", "do-plot",])
+		opts, arg = getopt.getopt(args, "hvsof:p:elt:g:x", ["help", "verbose", "lwasv", "ovro-lwa", "freq=", "polarization=", "empirical", "lfsm", "time-step=", "tag=", "do-plot",])
 	except getopt.GetoptError, err:
 		# Print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
@@ -93,6 +95,8 @@ def parseOptions(args):
 			config['GSM'] = False
 		elif opt in ('-t', '--time-step'):
 			config['tStep'] = float(value)
+		elif opt in ('-g', '--tag'):
+			config['tag'] = value
 		elif opt in ('-x', '--do-plot'):
 			config['enableDisplay'] = True
 		else:
@@ -303,6 +307,9 @@ def main(args):
 		pylab.show()
 	
 	outputFile = "driftcurve_%s_%s_%.2f.txt" % (config['site'], config['pol'], config['freq']/1e6)
+	if config['tag'] is not None:
+		base, ext = os.path.splitext(outputFile)
+		outputFile = "%s_%s%s" % (base, config['tag'], ext)
 	print "Writing driftcurve to file '%s'" % outputFile
 	mf = file(outputFile, "w")
 	for lst,pow in zip(lstList, powListAnt):
