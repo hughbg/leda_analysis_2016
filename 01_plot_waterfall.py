@@ -18,6 +18,7 @@ from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
 from leda_cal.useful import add_uncertainties
+from leda_cal import robust
 import leda_cal.params
 
 sns.set_style('white')
@@ -33,7 +34,7 @@ gal_center._dec = '-29 00 28.1'
 gal_center.name = "Galactic Center"
 
 
-def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
+def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, sky=False, lfsm=False, emp=False):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
@@ -101,6 +102,24 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
 
     dump_data = {}
     
+    if sky:
+      if lfsm and emp:
+        smdl = SkyModelLFSMEmp
+        smlbl = 'LFSM+Emp'
+      elif lfsm and not emp:
+        smdl = SkyModelLFSM
+        smlbl = 'LFSM'
+      elif not lfsm and emp:
+        smdl = SkyModelGSMEmp
+        smlbl = 'GSM+Emp'
+      else:
+        smdl = SkyModelGSM        
+        smlbl = 'GSM'
+      sy = smdl(pol='y')
+      sx = smdl(pol='x')
+      T_y_asm = sy.generate_tsky(lst_stamps, f_leda*1e6)
+      T_x_asm = sx.generate_tsky(lst_stamps, f_leda*1e6)
+    
     if flag and merge:
         # If we are going to merge the flags across antennas, we need to flag them all now
         for p in (0, 1):
@@ -109,6 +128,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
                 T_flagged = T_ant[ant]
                 if not all_lsts:
                     T_flagged = np.delete(T_flagged, unusable_lsts, axis=0)
+                
                 new_mask = rfi_flag(T_flagged, freqs=f_leda).mask
                 try:
                     merged_mask |= new_mask
@@ -129,7 +149,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
 
           T_flagged = T_ant[ant]
           if not all_lsts:  T_flagged = np.delete(T_flagged, unusable_lsts, axis=0)
-
+          
           print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
 
           if flag:
@@ -141,6 +161,13 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
                 ## this all in one pass
                 T_flagged = rfi_flag(T_flagged, freqs=f_leda)
             print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
+
+          try:
+              T_asm = T_y_asm if p == 0 else T_x_asm
+              scale_offset_asm = robust.mean(T_asm / T_flagged)
+              T_flagged = T_flagged - T_asm / scale_offset_asm
+          except NameError:
+               pass
 
           if dump: 
             dump_data[ant] = T_flagged
@@ -175,6 +202,8 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
              except AttributeError:
                  clim = (percentile(T_flagged_plot, 5), percentile(T_flagged_plot, 95))
 
+          elif sky:
+             clim = (-250, 500)
           else:
              clim = (1000, 10000)
 
@@ -200,7 +229,10 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
         
         #plt.subplot(2,3,3)
         #cbar = plt.colorbar()
-        cbar.set_label("Temperature [K]")
+        if sky:
+            cbar.set_label("Temperature - %s [K]" % smlbl)
+        else:
+            cbar.set_label("Temperature [K]")
         cbar.ax.tick_params(axis='y', pad=2) 
         #plt.tight_layout()
     
@@ -213,7 +245,13 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts):
       dump_data["lsts"] = lst_stamps
       dump_data["utcs"] = np.array([str(pytime) for pytime in utc_stamps])
       dump_data["frequencies"] = f_leda
-      dump_data["options"] = "Flag="+str(flag)+" Merge="+str(merge)+" Flatten="+str(flatten)+" All LSTSs="+str(all_lsts)
+      dump_data["options"] = "Flag="+str(flag)+ \
+                             " Merge="+str(merge)+ \
+                             " Flatten="+str(flatten)+ \
+                             " All LSTSs="+str(all_lsts)+ \
+                             " Sky Model Substract="+str(sky)+ \
+                             " Use LFSM="+str(lfsm)+ \
+                             " Apply empirical gain correction="+str(emp)
       hickle.dump(dump_data, os.path.basename(filename)[:-3]+".hkl")
 
 if __name__ == "__main__":
@@ -223,6 +261,12 @@ if __name__ == "__main__":
     o = optparse.OptionParser()
     o.set_usage(usage)
     o.set_description(__doc__)
+    o.add_option('--sky', dest='sky', action='store_true', default=False,
+      help='Subtract off a sky model. Default: False')
+    o.add_option('--lfsm', dest='lfsm', action='store_true', default=False,
+      help='Use the LFSM instead of the GSM')
+    o.add_option('--empirical', dest='emp', action='store_true', default=False,
+      help='Apply an empirical corretion to the dipole gain pattern model')
     o.add_option('--flatten', dest='flatten', action='store_true', default=False,
       help='Apply a crude bandpass derived from the data. Default: False')
     o.add_option('--flag', dest='flag', action='store_true', default=False,
@@ -248,4 +292,5 @@ if __name__ == "__main__":
     else: filename = args[0]
 
     params.median = opts.median
-    quicklook(filename, opts.save, opts.dump, opts.flag, opts.merge, opts.flatten, opts.no_show, opts.all_lsts)
+    quicklook(filename, opts.save, opts.dump, opts.flag, opts.merge, opts.flatten, opts.no_show, opts.all_lsts, 
+              sky=opts.sky, lfsm=opts.lfsm, emp=opts.emp)

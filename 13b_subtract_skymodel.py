@@ -21,7 +21,7 @@ sns.set_context("paper",font_scale=1.5)
 
 F_START, F_STOP = 60, 82
 
-def quicklook(filename):
+def quicklook(filename, lfsm=False, emp=False):
     h5 = tb.open_file(filename)
 
     T_ant = apply_calibration(h5)
@@ -46,6 +46,19 @@ def quicklook(filename):
     n_poly = 5
     n_chan = 42
     
+    if lfsm and emp:
+        smdl = SkyModelLFSMEmp
+        smlbl = 'LFSM+Emp'
+    elif lfsm and not emp:
+        smdl = SkyModelLFSM
+        smlbl = 'LFSM'
+    elif not lfsm and emp:
+        smdl = SkyModelGSMEmp
+        smlbl = 'GSM+Emp'
+    else:
+        smdl = SkyModelGSM        
+        smlbl = 'GSM'
+   
     plt.figure("resid", figsize=(6, 8))
 
     for aa in ant_ids:
@@ -61,20 +74,29 @@ def quicklook(filename):
 
             f_t, d_t = trim(f_leda, d, F_START, F_STOP)
             #f_t, d_errs_t = trim(f_leda, d_errs, 40, 80)
-            T_ew = np.interp(f_t, gsm["f"], gsm["T_ew"])
+            
+            s = smdl(pol='y' if aa[-1] == 'A' else 'x')
+            asm = s.generate_tsky(lst[mid-sl:mid+sl], f_leda*1e6).mean(axis=0)
+    
+            T_hsm = np.interp(f_t, gsm["f"], gsm["T_ew"])
+            T_asm = np.interp(f_t, f_leda, asm)
 
-            scale_offset = np.mean(T_ew / d_t)
-            print scale_offset
+            scale_offset = np.mean(T_hsm / d_t)
+            scale_offset_asm = np.mean(T_asm / d_t)
+            print scale_offset, scale_offset_asm
             
-            model_skypowerlaw = poly_fit(f_t, T_ew, 1, log=True)
+            model_skypowerlaw = poly_fit(f_t, T_hsm, 1, log=True)
+            model_skypowerlaw_asm = poly_fit(f_t, T_asm, 1, log=True)
             
-            #resid0 = scale_offset * d_t - T_ew
-            resid0 = d_t #scale_offset * d_t #- T_ew
+            #resid0 = scale_offset * d_t - T_hsm
+            resid0 = d_t #scale_offset * d_t #- T_hsm
+            resid0_asm = d_t #scale_offset * d_t #- T_hsm
             
             #plt.figure("m0")
-            #plt.plot(T_ew - model_skypowerlaw)
+            #plt.plot(T_hsm - model_skypowerlaw)
             
             resid0 = resid0 #+ model_skypowerlaw
+            resid0_asm = resid0_asm #+ model_skypowerlaw_asm
         
         pols = (1, 3, 5, 7)
         
@@ -90,12 +112,18 @@ def quicklook(filename):
                 else:
                     model = poly_fit(f_t, resid0, nn, log=True)
                     #model = fourier_fit(resid0, 0, nn)
+                    model_asm = poly_fit(f_t, resid0_asm, nn, log=True)
+                    #model_asm = fourier_fit(resid0_asm, 0, nn)
                 #model = 0
+                #model_asm = 0
 
-                #plt.plot(f_t, resid0)
-                #plt.plot(f_t, model)
+                #plt.plot(f_t, resid0, linestyle='--')
+                #plt.plot(f_t, model, linestyle='--')
+                #plt.plot(f_t, resid0_asm)
+                #plt.plot(f_t, model_asm)
                 
-                plt.plot(rebin(f_t, n_chan), rebin(resid0-model, n_chan))
+                plt.plot(rebin(f_t, n_chan), rebin(resid0-model, n_chan), linestyle='--')
+                plt.plot(rebin(f_t, n_chan), rebin(resid0_asm-model_asm, n_chan))
             plt.ylabel("Temperature [K]")
             plt.xlim(F_START, F_STOP)
             plt.minorticks_on()
@@ -117,12 +145,22 @@ def quicklook(filename):
     plt.show()
 
 if __name__ == "__main__":
+    import optparse, sys
+
+    usage = '%prog [opts] filename_of_hdf5_observation'
+    o = optparse.OptionParser()
+    o.set_usage(usage)
+    o.set_description(__doc__)
+    o.add_option('--lfsm', dest='lfsm', action='store_true', default=False,
+      help='Use the LFSM instead of the GSM')
+    o.add_option('--empirical', dest='emp', action='store_true', default=False,
+      help='Apply an empirical corretion to the dipole gain pattern model')
     
-    import sys
-    try:
-        filename = sys.argv[1]
-    except:
-        print "USAGE: ./quicklook.py filename_of_hdf5_observation"
-        exit()
+    opts, args = o.parse_args(sys.argv[1:])
     
-    quicklook(filename)
+    if len(args) != 1:
+      o.print_help()
+      exit(1)
+    else: filename = args[0]
+    
+    quicklook(filename, lfsm=opts.lfsm, emp=opts.emp)
