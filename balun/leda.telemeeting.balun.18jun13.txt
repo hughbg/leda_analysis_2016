@@ -1,0 +1,51 @@
+TeleMeeting on balun strategy
+18jun13  Greenhill/Fialkov 
+
+Generate 
+
+(i) average balun responses for each antenna, all campaigns.
+(ii) ditto for each antenna, preferred curves, if any. Use above if no objective selection.
+(iii) ditto for all antennas together, controlling for polz (based on subset in (ii)).
+
+
+
+N-S data
+
+256B
+
+(i)   18may08-10  (3)
+
+(ii)  none preferred; adopt above (3) 
+
+
+
+255B
+
+(i)   18may08-10, ignoring 18may08 m1-m6 (3)
+
+(ii)  18may09 
+
+
+
+254B 
+
+(i)   18may09 & 18may26
+
+(ii)  18may26 (minor discontinuities in 18may09 data)
+
+
+
+252B
+
+(i)   18may09-26
+
+(ii)  18may08 & 18may26
+
+
+
+
+
+Timing of VNA calibrations and of resistive and capacitive load scans are 
+described in README files w/ ea. data directory on Git.
+
+Permutations:  combinations of five that are independent.
