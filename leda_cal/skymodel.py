@@ -15,7 +15,9 @@ from scipy import interpolate
 from scipy.optimize import curve_fit
 
 class SkyModelGSM(object):
-    """GSM sky model class using the NEC4 LWA dipole model"""
+    """
+    GSM sky model class using the NEC4 LWA dipole model
+    """
     
     # Relative path to the data
     _path = 'lfsm'
@@ -39,7 +41,9 @@ class SkyModelGSM(object):
         self.compute_gsm_splines()
     
     def curve_fit(self, f, d):
-        """ Wrapper for curve_fit """
+        """
+        Wrapper for curve_fit
+        """
         f_l = np.log10(f / 70e6)
         d_l = np.log10(d)
         fit = np.polyfit(f_l, d_l, self.npol)
@@ -47,7 +51,9 @@ class SkyModelGSM(object):
         return fit
     
     def compute_gsm_splines(self):
-        """ Load GSM data and form interpolation splines """
+        """
+        Load the model data and form interpolation splines
+        """
 
         print "computing %s for Pol %s" % (self._name.upper(), self.pol)
         drift_data, drift_lsts, drift_freqs = self.data, self.lsts, self.freqs
@@ -89,7 +95,9 @@ class SkyModelGSM(object):
             return np.zeros_like(freqs)
 
     def generate_tsky(self, lst, freqs):
-        """ Compute GSM Tsky for given lst and frequency range """
+        """
+        Compute the model Tsky for given lst and frequency range
+        """
 
         if type(lst) is type(np.array([1,2])):
             tsky = np.zeros((len(lst), len(freqs)))
@@ -108,7 +116,9 @@ class SkyModelGSM(object):
         return tsky
 
 class SkyModelGSMEmp(SkyModelGSM):
-    """GSM sky model class the NEC4 LWA dipole model, plus empirical corrections"""
+    """
+    GSM sky model class the NEC4 LWA dipole model, plus empirical corrections
+    """
     
     # Relative path to the data
     _path = 'lfsm'
@@ -117,7 +127,9 @@ class SkyModelGSMEmp(SkyModelGSM):
     _name = 'gsm_emp'
 
 class SkyModelLFSM(SkyModelGSM):
-    """LFSM sky model class the NEC4 LWA dipole model"""
+    """
+    LFSM sky model class the NEC4 LWA dipole model
+    """
     
     # Relative path to the data
     _path = 'lfsm'
@@ -126,7 +138,9 @@ class SkyModelLFSM(SkyModelGSM):
     _name = 'lfsm_nec'
 
 class SkyModelLFSMEmp(SkyModelGSM):
-    """LFSM sky model class the NEC4 LWA dipole model, plus empirical corrections"""
+    """
+    LFSM sky model class the NEC4 LWA dipole model, plus empirical corrections
+    """
     
     # Relative path to the data
     _path = 'lfsm'

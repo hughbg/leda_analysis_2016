@@ -187,7 +187,7 @@ def estimate_bandpass(data):
     
     TODO: Fit a polynomial instead?
     """
-        
+    
     est = filter(data, params.st_bp_window_f, axis=0)
     est = filter(est, params.st_bp_window_t, axis=1)
     
@@ -245,55 +245,55 @@ def flag_window(data):
     return data.mask
 
 def clip(data):
+    bp_window_t = params.sc_bp_window_t
+    bp_window_f = params.sc_bp_window_f
 
-  bp_window_t = params.sc_bp_window_t
-  bp_window_f = params.sc_bp_window_f
-
-  # Get the standard deviation of the high (by frequency) third of the data, for clipping
-  cut = data.shape[1]/3
-  chunk = data[:, data.shape[1]-cut:]
-  chunk = bn.move_nanmean(chunk, bp_window_t, axis=0)
-  chunk = np.roll(chunk, -bp_window_t/2+1, axis=0)
-  chunk = bn.move_nanmean(chunk, bp_window_f, axis=1)
-  chunk = np.roll(chunk, -bp_window_f/2+1, axis=1)
-  chunk = data[:, data.shape[1]-cut:]-chunk
-  chunk = chunk[bp_window_t:, bp_window_f:]		# Because these edge values are nan now
-  chunk = np.ravel(chunk)
-  if np.ma.is_masked(chunk): chunk = chunk[chunk.mask==False]
-
-  # Clipping values
-  dmin = -params.sigma*np.std(chunk)
-  dmax = params.sigma*np.std(chunk)
-
-  # Mask the data. Have to flatten the data to find where to mask it
-  flat = bn.move_nanmean(data, bp_window_t, axis=0)
-  flat = np.roll(flat, -bp_window_t/2+1, axis=0)
-  flat = bn.move_nanmean(flat, bp_window_f, axis=1)
-  flat = np.roll(flat, -bp_window_f/2+1, axis=1)
-  flat = data-flat;
-  m = np.ma.mean(flat[bp_window_t:, bp_window_f:])			
-  flat[:bp_window_t, :] = m		# Because these edge values are now Nan due to move_nanmean
-  flat[:, :bp_window_f] = m
-  flat -= m
-
-  data.mask = np.logical_or(data.mask, flat>dmax)
-  data.mask = np.logical_or(data.mask, flat<dmin)
+    # Get the standard deviation of the high (by frequency) third of the data, for clipping
+    cut = data.shape[1]/3
+    chunk = data[:, data.shape[1]-cut:]
+    chunk = bn.move_nanmean(chunk, bp_window_t, axis=0)
+    chunk = np.roll(chunk, -bp_window_t/2+1, axis=0)
+    chunk = bn.move_nanmean(chunk, bp_window_f, axis=1)
+    chunk = np.roll(chunk, -bp_window_f/2+1, axis=1)
+    chunk = data[:, data.shape[1]-cut:]-chunk
+    chunk = chunk[bp_window_t:, bp_window_f:]		# Because these edge values are nan now
+    chunk = np.ravel(chunk)
+    if np.ma.is_masked(chunk):
+        chunk = chunk[chunk.mask==False]
+        
+    # Clipping values
+    dmin = -params.sigma*np.std(chunk)
+    dmax = params.sigma*np.std(chunk)
+    
+    # Mask the data. Have to flatten the data to find where to mask it
+    flat = bn.move_nanmean(data, bp_window_t, axis=0)
+    flat = np.roll(flat, -bp_window_t/2+1, axis=0)
+    flat = bn.move_nanmean(flat, bp_window_f, axis=1)
+    flat = np.roll(flat, -bp_window_f/2+1, axis=1)
+    flat = data-flat;
+    m = np.ma.mean(flat[bp_window_t:, bp_window_f:])			
+    flat[:bp_window_t, :] = m		# Because these edge values are now Nan due to move_nanmean
+    flat[:, :bp_window_f] = m
+    flat -= m
+    
+    data.mask = np.logical_or(data.mask, flat>dmax)
+    data.mask = np.logical_or(data.mask, flat<dmin)
 
 
 def clip1(data):
     nstart = np.ma.count(data)
     for i in xrange(data.shape[1]):
-      flat = bn.move_nanmean(data[:, i], params.sc_bp_window_t, axis=-1)
-      flat = np.roll(flat, -params.sc_bp_window_t/2+1, axis=-1)
-      flat = data[:, i]-flat			# this will also insert the mask
-      std = np.std(flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))])
-      if not np.isnan(float(std)):
-        clip_mask = np.logical_or(flat < -params.sigma*std, params.sigma*std < flat) 
-        data[:,i].mask = np.logical_or(data[:, i].mask, clip_mask)
-
+        flat = bn.move_nanmean(data[:, i], params.sc_bp_window_t, axis=-1)
+        flat = np.roll(flat, -params.sc_bp_window_t/2+1, axis=-1)
+        flat = data[:, i]-flat			# this will also insert the mask
+        std = np.std(flat[np.logical_not(np.logical_or(np.isnan(flat), flat.mask))])
+        if not np.isnan(float(std)):
+            clip_mask = np.logical_or(flat < -params.sigma*std, params.sigma*std < flat) 
+            data[:,i].mask = np.logical_or(data[:, i].mask, clip_mask)
+            
     if np.ma.count(data) > nstart:
-      print "ERROR: number of points flagged went DOWN after clipping!"
-      exit(1)
+        raise RuntimeError("Number of points flagged went DOWN after clipping!")
+
 
 @check_mask
 def clip2(data, robust=True):
@@ -322,19 +322,18 @@ def clip2(data, robust=True):
 
 
 def do_dtv_flagging(data, freqs):
-
-  nstart = np.ma.count(data)
-  for freq in params.dtv_frequencies:
-    channel = len(freqs[freqs<freq])-1	# channel of the nearest freq
-    channels = [ channel-1, channel, channel+1 ]
- 
-    for i in range(data.shape[0]):
-      if np.ma.is_masked(data[i, channels]): 
-        data[i, channel-13:channel+250-13 ].mask = True	# The start of the TV subband is 13 channels back and 250 wide
+    nstart = np.ma.count(data)
+    for freq in params.dtv_frequencies:
+        channel = len(freqs[freqs<freq])-1	# channel of the nearest freq
+        channels = [ channel-1, channel, channel+1 ]
     
-  if np.ma.count(data) > nstart:
-    print "ERROR: number of points flagged went DOWN after DTV flagging!"
-    exit(1)    
+        for i in range(data.shape[0]):
+            if np.ma.is_masked(data[i, channels]): 
+                data[i, channel-13:channel+250-13 ].mask = True	# The start of the TV subband is 13 channels back and 250 wide
+        
+    if np.ma.count(data) > nstart:
+        raise RuntimeError("Number of points flagged went DOWN after DTV flagging!")
+
 
 @check_mask
 def do_dtv_flagging2(data, freqs):
@@ -403,46 +402,43 @@ def rfi_flag(data, freqs=None):
     
     
     if params.do_sum_threshold:
-      try:
-        to_flag
-      except NameError:
-        bpass = estimate_bandpass(data)
-        to_flag = data / bpass
+        try:
+            to_flag
+        except NameError:
+            bpass = estimate_bandpass(data)
+            to_flag = data / bpass
+            
+        to_flag.mask = sum_threshold(to_flag)
+        to_flag.mask = flag_fraction(to_flag)
+        to_flag.mask = flag_window(to_flag)
         
-      to_flag.mask = sum_threshold(to_flag)
-      to_flag.mask = flag_fraction(to_flag)
-      to_flag.mask = flag_window(to_flag)
-      
-      data.mask = to_flag.mask
-
+        data.mask = to_flag.mask
+        
     if params.do_sigma_clip:
-      try:
-        to_flag
-      except NameError:
-        bpass = estimate_bandpass(data)
-        to_flag = data / bpass
+        try:
+            to_flag
+        except NameError:
+            bpass = estimate_bandpass(data)
+            to_flag = data / bpass
+            
+        to_flag.mask = clip2(to_flag)
+        to_flag.mask = flag_fraction(to_flag)
+        to_flag.mask = flag_window(to_flag)
         
-      to_flag.mask = clip2(to_flag)
-      to_flag.mask = flag_fraction(to_flag)
-      to_flag.mask = flag_window(to_flag)
-      
-      data.mask = to_flag.mask
-      
+        data.mask = to_flag.mask
+        
     if params.do_dtv_flagging and freqs is not None:
-      try:
-        to_flag
-      except NameError:
-        bpass = estimate_bandpass(data)
-        to_flag = data / bpass
-         
-      to_flag.mask = do_dtv_flagging2(to_flag, freqs) 
-      
-      data.mask = to_flag.mask
-
+        try:
+            to_flag
+        except NameError:
+            bpass = estimate_bandpass(data)
+            to_flag = data / bpass
+            
+        to_flag.mask = do_dtv_flagging2(to_flag, freqs) 
+        
+        data.mask = to_flag.mask
+        
     # Make sure all Nan are masked
     data.mask = np.logical_or(data.mask, np.isnan(data))
-
-
-    return data
-
     
+    return data
