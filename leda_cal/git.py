@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 def get_hash():
@@ -53,7 +54,7 @@ def is_branch_dirty(exclude_exts=None):
         for line in output:
             filename = line.split()[-1]
             _, ext = os.path.splitext(filename)
-            if ext in exclude_exts:
+            if ext not in exclude_exts:
                 dirty = True
     else:
         dirty = True if len(output) > 3 else False
