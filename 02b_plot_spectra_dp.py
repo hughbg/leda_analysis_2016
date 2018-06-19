@@ -12,7 +12,7 @@ import seaborn as sns
 import tables as tb
 from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
-
+from leda_cal.git import get_repo_fingerprint
 from leda_cal.dpflgr import *
 
 sns.set_style('ticks')
@@ -79,11 +79,15 @@ def quicklook(filename, flag, ant='252A', freq=60):
     
     plt.legend(frameon=False, loc=2)
     plt.tight_layout()
+    
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
+    
     if ant_ids[0] == '252A':
         plt.savefig("figures/a252-cuts.pdf")
     plt.show()
     sl  = 250
     plt.plot(f_leda, T_flagged[mid-sl:mid+sl].mean(axis=0) - T_flagged.mean(axis=0))
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
 

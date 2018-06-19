@@ -9,6 +9,7 @@ import seaborn as sns
 import tables as tb
 from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
+from leda_cal.git import get_repo_fingerprint
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
 
@@ -84,6 +85,7 @@ def quicklook(filename):
     cbar.set_label("Temperature [K]")
     
     #plt.tight_layout()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
     

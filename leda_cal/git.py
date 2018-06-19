@@ -71,9 +71,9 @@ def get_repo_fingerprint():
     
     branch = get_branch()
     ghash = get_hash()
-    dirty = '_dirty' if is_branch_dirty(exclude_exts=['.pdf', '.png']) else ''
+    dirty = 'dirty_' if is_branch_dirty(exclude_exts=['.pdf', '.png']) else ''
     
-    return "%s%s_%s" % (branch, dirty, ghash)
+    return "%s%s_%s" % (dirty, branch, ghash)
 
 
 if __name__ == "__main__":

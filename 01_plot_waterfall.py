@@ -19,6 +19,7 @@ from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
 from leda_cal.useful import add_uncertainties
 from leda_cal import robust
+from leda_cal.git import get_repo_fingerprint
 import leda_cal.params
 
 sns.set_style('white')
@@ -240,6 +241,8 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, sky
         cbar.ax.tick_params(axis='y', pad=2) 
         #plt.tight_layout()
     
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
+    
     if save:
         plt.savefig(os.path.basename(filename)[:-3]+".png")
     if not no_show:
@@ -256,6 +259,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, sky
                                + " Sky Model Substract="+str(sky) \
                                + " Use LFSM="+str(lfsm) \
                                + " Apply empirical gain correction="+str(emp)
+        dump_data["fingerprint"] = get_repo_fingerprint()
         hickle.dump(dump_data, os.path.basename(filename)[:-3]+".hkl")
 
 

@@ -12,6 +12,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.useful import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
@@ -93,6 +94,7 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     plt.ylabel("data / model")
     plt.tight_layout()
     plt.minorticks_on()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/skymodel-compare.pdf")
     plt.show()
     
@@ -103,6 +105,7 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     
     plt.plot(f_t, resid, linestyle='--')
     plt.plot(f_t, resid_asm)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
 
 if __name__ == "__main__":

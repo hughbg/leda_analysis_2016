@@ -15,6 +15,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.dpflgr import *
 from leda_cal.useful import fit_poly, closest, trim, fourier_fit, poly_fit, rebin
+from leda_cal.git import get_repo_fingerprint
 
 from lmfit import minimize, Parameters, report_fit
 
@@ -114,6 +115,7 @@ def quicklook(filename):
     plt.xlabel("Frequency [MHz]")
     plt.ylabel("Temperature [K]")
     plt.legend(frameon=False)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
 
@@ -133,6 +135,7 @@ def quicklook(filename):
     plt.minorticks_on()
     plt.xlim(0, 24)
     plt.ylim(1500, 3300)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/spectral-index.pdf")
     plt.show()
     

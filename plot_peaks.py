@@ -11,6 +11,7 @@ import tables as tb
 from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
@@ -71,6 +72,7 @@ def quicklook(filename, save, flag, noshow):
     
     plt.legend(frameon=False)
     plt.tight_layout()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/compare-spectra.pdf")
     
     if save:

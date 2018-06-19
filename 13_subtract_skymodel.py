@@ -14,6 +14,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.useful import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
@@ -106,16 +107,21 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     #print d.shape, d_flags.shape, d_errs.shape
     x = np.column_stack((A, B, C))
     np.savetxt("data_resids_gianni.txt", x)
+    fh = open("data_resids_gianni.txt", "a")
+    fh.write("# %s\n" % get_repo_fingerprint())
+    fh.close()
     
-    plt.figure("AAA @ %i terms" % n_poly)
+    fig = plt.figure("AAA @ %i terms" % n_poly)
     #plt.plot(f_t, resid0)
     #plt.plot(f_t, model)
     plt.plot(rebin(f_t, n_chan), rebin(resid0-model, n_chan), linestyle='--')
     plt.plot(rebin(f_t, n_chan), rebin(resid0_asm-model, n_chan))
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     
-    plt.figure("BBB @ %i terms" % n_poly)
+    fig = plt.figure("BBB @ %i terms" % n_poly)
     plt.plot(scale_offset * d_t - T_hsm, linestyle='--')
     plt.plot(scale_offset_asm * d_t - T_asm)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
     
@@ -137,6 +143,7 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     plt.ylabel("data / model")
     plt.tight_layout()
     plt.minorticks_on()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/skymodel-compare.pdf")
     plt.show()
     
@@ -147,6 +154,7 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     
     plt.plot(f_t, resid, linestyle='--')
     plt.plot(f_t, resid_asm)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
 
 if __name__ == "__main__":

@@ -11,8 +11,9 @@ import tables as tb
 from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
-from lmfit import minimize, Parameters, report_fit
+#from lmfit import minimize, Parameters, report_fit
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
@@ -31,7 +32,9 @@ def quicklook(filename):
     
     T_noise = compute_noisewave('a252x')
     
+    fig = plt.figure()
     plt.plot(f, T_noise)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
 

@@ -11,6 +11,7 @@ import seaborn as sns
 import tables as tb
 from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
+from leda_cal.git import get_repo_fingerprint
 from leda_cal.dpflgr import simple_flag
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.7)
@@ -97,6 +98,8 @@ def quicklook(filename):
     plt.ylim(-0.07, 0.07)
     plt.legend(loc=4, frameon=True, ncol=3)
     plt.minorticks_on()
+    
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     
     plt.savefig("figures/compare-ants.pdf")
     plt.show()

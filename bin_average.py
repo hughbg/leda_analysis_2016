@@ -9,6 +9,8 @@ import math
 import bottleneck as bn
 import scipy.optimize
 
+from leda_cal.git import get_repo_fingerprint
+
 
 if len(sys.argv) != 5:
     print "Usage:", sys.argv[0], "hkl_file  antenna  LST_start av_length"
@@ -80,6 +82,7 @@ for ind in range(len(vecTbins)-1):
 Time_bins = []
 bp_window_t = 8
 av_data_dict = {}
+av_data_dict["fingerprint"] = get_repo_fingerprint()
 av_data_dict["Bins"] = [ {} for i in range(len(vecTbins)-1) ]
 av_data_dict["Freqs"] = scrunch(d["frequencies"])
 fig = plt.figure() 

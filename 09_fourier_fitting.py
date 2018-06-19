@@ -13,6 +13,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.dpflgr import *
 from leda_cal.useful import poly_fit, fourier_fit
+from leda_cal.git import get_repo_fingerprint
 
 
 sns.set_style('ticks')
@@ -25,7 +26,7 @@ def quicklook(filename):
     
     ant_ids = ['a252x']#, 'a254x', 'a255x']
     
-    plt.figure(figsize=(10, 4))
+    fig = plt.figure(figsize=(10, 4))
     for ant_id in ant_ids:
         ra = vna_cal[ant_id]["ra"]
         rl = vna_cal[ant_id]["rl"]
@@ -102,6 +103,7 @@ def quicklook(filename):
     plt.tight_layout()
     #plt.legend(["$G$"], frameon=False, loc=4)
     #plt.text(40, 0.999, "$G$")
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/cal-params.pdf")
     plt.show()
 
