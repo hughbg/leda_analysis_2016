@@ -49,11 +49,10 @@ def quicklook(filename, flatten, ant='252A'):
     clim = (percentile(T_flagged.compressed(), 5), percentile(T_flagged.compressed(), 95))
         
     im = plt.imshow(T_flagged, # / np.median(xx, axis=0), 
-               cmap='jet', aspect='auto',
-               interpolation='nearest',
-               clim=clim,
-               extent=(xlims[0], xlims[1], ylims[1], ylims[0])
-               )
+                    cmap='jet', aspect='auto',
+                    interpolation='nearest',
+                    clim=clim,
+                    extent=(xlims[0], xlims[1], ylims[1], ylims[0]))
     plt.title(ant_ids[0])
     plt.xlabel("Frequency [MHz]")
 
@@ -102,15 +101,16 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--ant', dest='ant', action='store', default='252A', 
-      help='Name of the antenna to plot. Default: 252A')
+                 help='Name of the antenna to plot. Default: 252A')
     o.add_option('--flatten', dest='flatten', action='store_true', default=False,
-      help='Apply a crude bandpass derived from the data. Default: False')
+                 help='Apply a crude bandpass derived from the data. Default: False')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, opts.flatten, ant=opts.ant)

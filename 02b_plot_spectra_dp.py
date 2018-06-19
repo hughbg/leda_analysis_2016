@@ -95,18 +95,18 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--ant', dest='ant', action='store', default='252A', 
-      help='Name of the antenna to plot. Default: 252A')
+                 help='Name of the antenna to plot. Default: 252A')
     o.add_option('--freq', dest='freq', type="float", action='store', default=60.0,
-      help='Frequence in MHz to use for driftcurve analysis. Default: 60')
+                 help='Frequence in MHz to use for driftcurve analysis. Default: 60')
     o.add_option('--no-flag', dest='flag', action='store_false', default=False,
-      help='Disable RFI flagging. Default: False, enable flagging')
+                 help='Disable RFI flagging. Default: False, enable flagging')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, opts.flag, ant=opts.ant, freq=opts.freq)
-    

@@ -152,15 +152,16 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--lfsm', dest='lfsm', action='store_true', default=False,
-      help='Use the LFSM instead of the GSM')
+                 help='Use the LFSM instead of the GSM')
     o.add_option('--empirical', dest='emp', action='store_true', default=False,
-      help='Apply an empirical corretion to the dipole gain pattern model')
+                 help='Apply an empirical corretion to the dipole gain pattern model')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, lfsm=opts.lfsm, emp=opts.emp)

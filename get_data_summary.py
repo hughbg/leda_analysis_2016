@@ -27,43 +27,44 @@ def main(args, all_lsts):
         T_ant = apply_calibration(h5)
         lst_stamps = T_ant['lst']
         if len(lst_stamps) == 0:
-          print "No LSTS in file"
-          exit(1)
-
+            print "No LSTS in file"
+            continue
+            
         # Report discontinuities in time
         for i in range(1,len(lst_stamps)):
-          if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
-            print "Discontinuity at LST", lst_stamps[i], (lst_stamps[i]-lst_stamps[i-1])*60*60, "seconds"
-
+            if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
+                print "Discontinuity at LST", lst_stamps[i], (lst_stamps[i]-lst_stamps[i-1])*60*60, "seconds"
+                
         utc_stamps = T_ant['utc']
         # Work out altitude of Gal center and Sun. Use whichever is highest
         # and put that in the padding, which is the stripe.
         unusable_lsts = []
         for i, d in enumerate(utc_stamps):
-          ovro.date = d
-          sun.compute(ovro)
-          gal_center.compute(ovro)
-          if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
-            unusable_lsts.append(i)
-
+            ovro.date = d
+            sun.compute(ovro)
+            gal_center.compute(ovro)
+            if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
+                unusable_lsts.append(i)
+                
         # Delete sun up LSTS
         if not all_lsts:
-           print "Cutting out times when sun/galaxy up"
-           lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
-           utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
-           if len(lst_stamps) == 0:
-             print "No LSTs available at night time (use --all_lsts to see all)"
-             continue
-           ylims = ( lst_stamps[0], lst_stamps[-1] )
-           print len(lst_stamps), "usable LSTs"
-        else: print "Using all LSTs"
+            print "Cutting out times when sun/galaxy up"
+            lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
+            utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
+            if len(lst_stamps) == 0:
+                print "No LSTs available at night time (use --all_lsts to see all)"
+                continue
+            ylims = ( lst_stamps[0], lst_stamps[-1] )
+            print len(lst_stamps), "usable LSTs"
+        else:
+            print "Using all LSTs"
         if len(lst_stamps) == 0:
-          print "There is no data to display (number of LSTs is 0)"
-          continue
+            print "There is no data to display (number of LSTs is 0)"
+            continue
         results[os.path.basename(filename)] = lst_stamps
-
+        
         h5.close()
-
+        
     filenames = list(results.keys())
     filenames.sort()
     ns = max([len(os.path.splitext(f)[0]) for f in filenames])
@@ -92,13 +93,14 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--all_lsts', dest='all_lsts', action='store_true', default=False,
-      help='Include all LSTs, not just when Galaxy and Sun are down. A day/night stripe is printed on the right. Default: False.')
+                 help='Include all LSTs, not just when Galaxy and Sun are down. A day/night stripe is printed on the right. Default: False.')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) < 1:
-      o.print_help()
-      exit(1)
-    else: filenames = args
-
+        o.print_help()
+        exit(1)
+    else:
+        filenames = args
+        
     main(filenames, opts.all_lsts)

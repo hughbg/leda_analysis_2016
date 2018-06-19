@@ -44,11 +44,10 @@ def quicklook(filename):
         T_ant[key] = T_flagged
         
         im = plt.imshow(T_flagged - T_avg, # / np.median(xx, axis=0), 
-                   cmap='viridis', aspect='auto',
-                   interpolation='nearest',
-                   clim=(-250, 250),
-                   extent=(xlims[0], xlims[1], ylims[1], ylims[0])
-                   )
+                        cmap='viridis', aspect='auto',
+                        interpolation='nearest',
+                        clim=(-250, 250),
+                        extent=(xlims[0], xlims[1], ylims[1], ylims[0]))
         plt.title(ant_ids[ii])
         plt.xlabel("Frequency [MHz]")
         #ax.yaxis_date()

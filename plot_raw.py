@@ -32,15 +32,14 @@ def mid_range(h5, t):		# A range that is 3 standard deviations around the mean
 
 def quicklook(filename, save, noshow, t):
     h5 = tb.open_file(filename)
-
+    
     if t >= len(h5.root.data.cols.ant252_x):
-      print "Time step doesn't exist"
-      exit(1)
-
+        raise RuntimeError("Time step doesn't exist")
+        
     (bottom, top) = mid_range(h5, t)
     
     fig, ax = plt.subplots(figsize=(8, 6))
-
+    
     plt.subplot(2,1,1)
     plt.plot(h5.root.data.cols.ant252_x[t], label="252A")
     plt.plot(h5.root.data.cols.ant254_x[t], label="254A")
@@ -60,16 +59,15 @@ def quicklook(filename, save, noshow, t):
     
     plt.minorticks_on()
     
-    
     plt.xlabel("Channel")
      
     plt.legend(frameon=False)
     plt.tight_layout()
     
     if save:
-      plt.savefig("raw_"+os.path.basename(filename)[:-3]+".png")
+        plt.savefig("raw_"+os.path.basename(filename)[:-3]+".png")
     if not noshow:
-      plt.show()
+        plt.show()
 
 if __name__ == "__main__":
     import optparse, sys
@@ -79,19 +77,18 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--time', dest='time', default=0, type="int",
-      help='The time step in the file. Default: 0')
+                 help='The time step in the file. Default: 0')
     o.add_option('--save', dest='save', action='store_true', default=False,
-      help="Save the plot to an image file, with filename the same as the h5 but png extension. Default: False.")
+                 help="Save the plot to an image file, with filename the same as the h5 but png extension. Default: False.")
     o.add_option('--noshow', dest='noshow', action='store_true', default=False,
-      help="Don't display the plot on screen. Useful for batch runs. Default: False.")
-
+                 help="Don't display the plot on screen. Useful for batch runs. Default: False.")
+    
     opts, args = o.parse_args(sys.argv[1:])
-
-
+    
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, opts.save, opts.noshow, opts.time)
- 
