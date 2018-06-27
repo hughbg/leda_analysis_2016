@@ -12,7 +12,7 @@ import seaborn as sns
 import tables as tb
 from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
-
+from leda_cal.git import get_repo_fingerprint
 from leda_cal.dpflgr import *
 
 sns.set_style('ticks')
@@ -79,11 +79,15 @@ def quicklook(filename, flag, ant='252A', freq=60):
     
     plt.legend(frameon=False, loc=2)
     plt.tight_layout()
+    
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
+    
     if ant_ids[0] == '252A':
         plt.savefig("figures/a252-cuts.pdf")
     plt.show()
     sl  = 250
     plt.plot(f_leda, T_flagged[mid-sl:mid+sl].mean(axis=0) - T_flagged.mean(axis=0))
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
 
@@ -95,18 +99,18 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--ant', dest='ant', action='store', default='252A', 
-      help='Name of the antenna to plot. Default: 252A')
+                 help='Name of the antenna to plot. Default: 252A')
     o.add_option('--freq', dest='freq', type="float", action='store', default=60.0,
-      help='Frequence in MHz to use for driftcurve analysis. Default: 60')
+                 help='Frequence in MHz to use for driftcurve analysis. Default: 60')
     o.add_option('--no-flag', dest='flag', action='store_false', default=False,
-      help='Disable RFI flagging. Default: False, enable flagging')
+                 help='Disable RFI flagging. Default: False, enable flagging')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, opts.flag, ant=opts.ant, freq=opts.freq)
-    

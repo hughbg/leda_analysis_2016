@@ -30,44 +30,44 @@ gal_center._dec = '-29 00 28.1'
 gal_center.name = "Galactic Center"
 
 def rms_filter(data):
-  return np.std(data[np.logical_not(np.isnan(data))])  
+    return np.std(data[np.logical_not(np.isnan(data))])  
 
 
 def quicklook(filename, ant, flag, noise, no_show, all_lsts):
     global fits_header
-
+    
     h5 = tb.open_file(filename)
     T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
     lst_stamps = T_ant['lst']
     utc_stamps = T_ant['utc']
-
+    
     # Report discontinuities in time
     for i in range(1,len(lst_stamps)):
-      if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
-        print "Discontinuity at LST", lst_stamps[i], (lst_stamps[i]-lst_stamps[i-1])*60*60, "seconds"
-
+        if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
+            print "Discontinuity at LST", lst_stamps[i], (lst_stamps[i]-lst_stamps[i-1])*60*60, "seconds"
+            
     # Work out altitude of Gal center and Sun. Use whichever is highest
     # and put that in the padding, which is the stripe.
     unusable_lsts = []
     for i, d in enumerate(utc_stamps):
-      ovro.date = d
-      sun.compute(ovro)
-      gal_center.compute(ovro)
-      if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
-        unusable_lsts.append(i)
-  
+        ovro.date = d
+        sun.compute(ovro)
+        gal_center.compute(ovro)
+        if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
+            unusable_lsts.append(i)
+            
     # Delete sun up LSTS
     if not all_lsts:
-       print "Cutting out Sun/Galaxy up. LSTS in DS9 may be WRONG!!!!!!"
-       lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
-       utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
-       print len(lst_stamps), "usable LSTs"
-    else: print "Using all LSTs"
+        print "Cutting out Sun/Galaxy up. LSTS in DS9 may be WRONG!!!!!!"
+        lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
+        utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
+        print len(lst_stamps), "usable LSTs"
+    else:
+        print "Using all LSTs"
     if len(lst_stamps) == 0:
-      print "There is no data to display (number of LSTs is 0)"
-      exit(1) 
-    
+        raise RuntimeError("There is no data to display (number of LSTs is 0)")
+        
     fits_header = fits_header.replace("XXXX", ( "%04d" % T_ant[ant].shape[1] ))
     fits_header = fits_header.replace("YYYY", ( "%04d" % len(lst_stamps) ))
 
@@ -81,55 +81,55 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts):
     fits_header = fits_header.replace("STARTL", lst_start)
     fits_header = fits_header.replace("STARTF", freq_start)
     
-   
     if flag:
-      print "Flagging"
-      data = rfi_flag(T_ant[ant], freqs=f_leda)
-    else: data = T_ant[ant]
-
+        print "Flagging"
+        data = rfi_flag(T_ant[ant], freqs=f_leda)
+    else:
+        data = T_ant[ant]
+        
     if not all_lsts:  
-      if flag: mask = np.delete(data.mask, unusable_lsts, axis=0)
-      data = np.delete(data, unusable_lsts, axis=0)
-      if flag: data.mask = mask
-
+        if flag:
+            mask = np.delete(data.mask, unusable_lsts, axis=0)
+        data = np.delete(data, unusable_lsts, axis=0)
+        if flag:
+            data.mask = mask
+            
     statistics(data)
-
+    
     # Test the image is oriented right
     #for i in range(200):
     #  for j in range(200): data[i, j] = 0	# Will be visible
-
-    if noise:
-      sigma = scipy.ndimage.filters.generic_filter(np.ma.filled(data, np.nan), rms_filter, size=(params.stats_bp_window_t, params.stats_bp_window_f))
-      sigma = np.ma.filled(sigma, 0)
-      print "Creating", os.path.basename(filename)[:-3]+"_"+ant+"_rms.fits"
-      f = open(os.path.basename(filename)[:-3]+"_"+ant+"_rms.fits", "wb")
-      f.write(fits_header)
-      sigma = sigma[::-1]		# have to flip
-      sigma.astype(np.float32).byteswap().tofile(f)
-      f.close()
     
+    if noise:
+        sigma = scipy.ndimage.filters.generic_filter(np.ma.filled(data, np.nan), rms_filter, size=(params.stats_bp_window_t, params.stats_bp_window_f))
+        sigma = np.ma.filled(sigma, 0)
+        print "Creating", os.path.basename(filename)[:-3]+"_"+ant+"_rms.fits"
+        f = open(os.path.basename(filename)[:-3]+"_"+ant+"_rms.fits", "wb")
+        f.write(fits_header)
+        sigma = sigma[::-1]		# have to flip
+        sigma.astype(np.float32).byteswap().tofile(f)
+        f.close()
+        
     if not flag:
-      data, bottom, top = scipy.stats.sigmaclip(data, low=params.ds9_clip, high=params.ds9_clip)
-      print "Clipping for plotting. Clipping is necessary when flagging is not used,\ndue to extreme peaks, otherwise no detail is visible."
-      higher = np.full((T_ant[ant].shape[0], T_ant[ant].shape[1]), top)
-      lower = np.full((T_ant[ant].shape[0], T_ant[ant].shape[1]), bottom)
-      data = np.where(T_ant[ant]>top, higher, T_ant[ant])
-      data = np.where(data<bottom, lower, data)
-
+        data, bottom, top = scipy.stats.sigmaclip(data, low=params.ds9_clip, high=params.ds9_clip)
+        print "Clipping for plotting. Clipping is necessary when flagging is not used,\ndue to extreme peaks, otherwise no detail is visible."
+        higher = np.full((T_ant[ant].shape[0], T_ant[ant].shape[1]), top)
+        lower = np.full((T_ant[ant].shape[0], T_ant[ant].shape[1]), bottom)
+        data = np.where(T_ant[ant]>top, higher, T_ant[ant])
+        data = np.where(data<bottom, lower, data)
+        
     data = np.ma.filled(data, 0)
-
+    
     print "Creating", os.path.basename(filename)[:-3]+"_"+ant+".fits"
     f = open(os.path.basename(filename)[:-3]+"_"+ant+".fits", "wb")
     f.write(fits_header)
     data = data[::-1]		# have to flip
     data.astype(np.float32).byteswap().tofile(f)
     f.close()
-
+    
     if not no_show:
-      print "Running DS9"
-      os.system("ds9 "+os.path.basename(filename)[:-3]+"_"+ant+".fits")
-
-
+        print "Running DS9"
+        os.system("ds9 "+os.path.basename(filename)[:-3]+"_"+ant+".fits")
 
 
 if __name__ == "__main__":
@@ -140,15 +140,15 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--flag', dest='flag', action='store_true', default=False,
-      help='Apply flagging. Default: False')
+                 help='Apply flagging. Default: False')
     o.add_option('--all_lsts', dest='all_lsts', action='store_true', default=False,
-      help='Include all LSTs, not just when Galaxy and Sun are down. Default: False.')
+                 help='Include all LSTs, not just when Galaxy and Sun are down. Default: False.')
     o.add_option('--median', dest='median', action='store_true', default=False,
-      help='Use a median filter in the sum threhold flagging. Default: False.')
+                 help='Use a median filter in the sum threhold flagging. Default: False.')
     o.add_option('--rms', dest='noise', action='store_true', default=False,
-      help='Create a FITs file containing the RMS over the data (after flattening data). The value of a pixel is the RMS at that point. Default: False.')   
+                 help='Create a FITs file containing the RMS over the data (after flattening data). The value of a pixel is the RMS at that point. Default: False.')   
     o.add_option('--no_show', dest='no_show', action='store_true', default=False,
-      help="Don't display the plot on screen using DS9. A FITS file is always created with the same name as the h5 file, but with antenna appended. This can be loaded into another FITS viewer if you don't have DS9. Default: False.")
+                 help="Don't display the plot on screen using DS9. A FITS file is always created with the same name as the h5 file, but with antenna appended. This can be loaded into another FITS viewer if you don't have DS9. Default: False.")
 
     opts, args = o.parse_args(sys.argv[1:])
 
@@ -158,9 +158,6 @@ if __name__ == "__main__":
     except:
         o.print_help()
         exit()
-    
+        
     params.median = opts.median
     quicklook(filename, ant, opts.flag,opts.noise, opts.no_show, opts.all_lsts)
-  
-
-    

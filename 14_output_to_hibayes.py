@@ -11,6 +11,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.dpflgr import *
 from leda_cal import useful
+from leda_cal.git import get_repo_fingerprint
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
@@ -116,11 +117,21 @@ if __name__ == "__main__":
     f, d, d_s = quicklook(filename)
     
     np.savetxt("freqs.txt", f)
+    fh = open("freqs.txt", "a")
+    fh.write("# %s\n" % get_repo_fingerprint())
+    fh.close()
     np.savetxt("spectrum.txt", d)
+    fh = open("spectrum.txt", "a")
+    fh.write("# %s\n" % get_repo_fingerprint())
+    fh.close()
     np.savetxt("spectrum_errs.txt", d_s)
+    fh = open("spectrum_errs.txt", "a")
+    fh.write("# %s\n" % get_repo_fingerprint())
+    fh.close()
     
     plt.subplot(2,1,1)
     plt.plot(f, d)
     plt.subplot(2,1,2)
     plt.plot(f, d_s)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=plt.gcf().transFigure, size=8)
     plt.show()

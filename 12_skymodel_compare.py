@@ -12,6 +12,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.useful import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
 sns.set_style('ticks')
 sns.set_context("paper",font_scale=1.5)
@@ -93,6 +94,7 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     plt.ylabel("data / model")
     plt.tight_layout()
     plt.minorticks_on()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/skymodel-compare.pdf")
     plt.show()
     
@@ -103,6 +105,7 @@ def quicklook(filename, ant='252A', lfsm=False, emp=False, n_poly=7):
     
     plt.plot(f_t, resid, linestyle='--')
     plt.plot(f_t, resid_asm)
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
 
 if __name__ == "__main__":
@@ -113,19 +116,20 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--ant', dest='ant', action='store', default='252A', 
-      help='Name of the antenna to plot. Default: 252A')
+                 help='Name of the antenna to plot. Default: 252A')
     o.add_option('--lfsm', dest='lfsm', action='store_true', default=False,
-      help='Use the LFSM instead of the GSM')
+                 help='Use the LFSM instead of the GSM')
     o.add_option('--empirical', dest='emp', action='store_true', default=False,
-      help='Apply an empirical corretion to the dipole gain pattern model')
+                 help='Apply an empirical corretion to the dipole gain pattern model')
     o.add_option('--n_poly', dest='n_poly', action='store', default=7, type="int",
-      help='Order of the polynomial to fit to the residuals. Default: 7')
+                 help='Order of the polynomial to fit to the residuals. Default: 7')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, ant=opts.ant, lfsm=opts.lfsm, emp=opts.emp, n_poly=opts.n_poly)

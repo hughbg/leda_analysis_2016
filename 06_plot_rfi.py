@@ -11,6 +11,7 @@ import tables as tb
 from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
 from scipy.stats import kurtosis, scoreatpercentile as percentile
 
@@ -49,16 +50,16 @@ def quicklook(filename, flatten, ant='252A'):
     clim = (percentile(T_flagged.compressed(), 5), percentile(T_flagged.compressed(), 95))
         
     im = plt.imshow(T_flagged, # / np.median(xx, axis=0), 
-               cmap='jet', aspect='auto',
-               interpolation='nearest',
-               clim=clim,
-               extent=(xlims[0], xlims[1], ylims[1], ylims[0])
-               )
+                    cmap='jet', aspect='auto',
+                    interpolation='nearest',
+                    clim=clim,
+                    extent=(xlims[0], xlims[1], ylims[1], ylims[0]))
     plt.title(ant_ids[0])
     plt.xlabel("Frequency [MHz]")
 
     plt.ylabel("LST [hr]")
     plt.colorbar()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/rfi-flagged.pdf")
     plt.show()
     
@@ -78,6 +79,7 @@ def quicklook(filename, flatten, ant='252A'):
     plt.minorticks_on()
     plt.legend(frameon=True, loc=2)
     plt.tight_layout()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig("figures/rfi-fraction.pdf")
     plt.show()
     
@@ -89,6 +91,7 @@ def quicklook(filename, flatten, ant='252A'):
     plt.xlim(40, 85)
     plt.ylim(-50, 1600)
     plt.minorticks_on()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.show()
     
     plt.figure()
@@ -102,15 +105,16 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--ant', dest='ant', action='store', default='252A', 
-      help='Name of the antenna to plot. Default: 252A')
+                 help='Name of the antenna to plot. Default: 252A')
     o.add_option('--flatten', dest='flatten', action='store_true', default=False,
-      help='Apply a crude bandpass derived from the data. Default: False')
+                 help='Apply a crude bandpass derived from the data. Default: False')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, opts.flatten, ant=opts.ant)

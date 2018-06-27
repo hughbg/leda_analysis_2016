@@ -14,6 +14,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.useful import *
 from leda_cal.dpflgr import *
+from leda_cal.git import get_repo_fingerprint
 
 
 sns.set_style('ticks')
@@ -59,7 +60,7 @@ def quicklook(filename, lfsm=False, emp=False):
         smdl = SkyModelGSM        
         smlbl = 'GSM'
    
-    plt.figure("resid", figsize=(6, 8))
+    fig = plt.figure("resid", figsize=(6, 8))
 
     for aa in ant_ids:
         if not aa == 'BB':
@@ -141,6 +142,7 @@ def quicklook(filename, lfsm=False, emp=False):
     #plt.yticks([-40, -20, 0, 20, 40])
     
     plt.tight_layout()
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
     plt.savefig(figout)
     plt.show()
 
@@ -152,15 +154,16 @@ if __name__ == "__main__":
     o.set_usage(usage)
     o.set_description(__doc__)
     o.add_option('--lfsm', dest='lfsm', action='store_true', default=False,
-      help='Use the LFSM instead of the GSM')
+                 help='Use the LFSM instead of the GSM')
     o.add_option('--empirical', dest='emp', action='store_true', default=False,
-      help='Apply an empirical corretion to the dipole gain pattern model')
+                 help='Apply an empirical corretion to the dipole gain pattern model')
     
     opts, args = o.parse_args(sys.argv[1:])
     
     if len(args) != 1:
-      o.print_help()
-      exit(1)
-    else: filename = args[0]
-    
+        o.print_help()
+        exit(1)
+    else:
+        filename = args[0]
+        
     quicklook(filename, lfsm=opts.lfsm, emp=opts.emp)

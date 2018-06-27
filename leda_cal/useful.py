@@ -159,115 +159,113 @@ def plot_waterfall(d, freqs, lsts, t_unit='hr', f_unit='MHz',
 import bottleneck as bn
 
 def ensure_mask(data):
-  # Turn into a masked array if it isn't. Makes the rest easier.
-  try:
-    mask = data.mask
-  except AttributeError:
-    data = np.ma.array(data)
-    data.mask = np.ma.make_mask_none((data.shape[0], data.shape[1]))
-  return data
+    # Turn into a masked array if it isn't. Makes the rest easier.
+    try:
+        mask = data.mask
+    except AttributeError:
+        data = np.ma.array(data)
+        data.mask = np.ma.make_mask_none((data.shape[0], data.shape[1]))
+    return data
 
 def pad(data, bp_window_f, bp_window_t):
-  # Intelligently pad data to take account of the border of Nans the bottleneck creates
-  # Need to unpad later. Unpad with array[bp_window_t:, bp_window_f:]
+    # Intelligently pad data to take account of the border of Nans the bottleneck creates
+    # Need to unpad later. Unpad with array[bp_window_t:, bp_window_f:]
 
-  # Problem with demeaning is that there is a border that becomes equal to Nan afterwards. 
-  # I want to avoid that so I'm going to pad the original array, replicating the edges out into the pad.
-  new_data = np.ma.zeros((data.shape[0]+bp_window_t, data.shape[1]+bp_window_f))
-  new_data[bp_window_t:, bp_window_f:] = data
-  new_data.mask[bp_window_t:, bp_window_f:] = data.mask
-  new_data[:bp_window_t, :data.shape[1]] = data[:bp_window_t, :]	# Replicate edge data into the pad
-  new_data[:data.shape[0], :bp_window_f] = data[:, :bp_window_f]
-  new_data.mask[:bp_window_t, :data.shape[1]] = data.mask[:bp_window_t, :]
-  new_data.mask[:data.shape[0], :bp_window_f] = data.mask[:, :bp_window_f]
+    # Problem with demeaning is that there is a border that becomes equal to Nan afterwards. 
+    # I want to avoid that so I'm going to pad the original array, replicating the edges out into the pad.
+    new_data = np.ma.zeros((data.shape[0]+bp_window_t, data.shape[1]+bp_window_f))
+    new_data[bp_window_t:, bp_window_f:] = data
+    new_data.mask[bp_window_t:, bp_window_f:] = data.mask
+    new_data[:bp_window_t, :data.shape[1]] = data[:bp_window_t, :]	# Replicate edge data into the pad
+    new_data[:data.shape[0], :bp_window_f] = data[:, :bp_window_f]
+    new_data.mask[:bp_window_t, :data.shape[1]] = data.mask[:bp_window_t, :]
+    new_data.mask[:data.shape[0], :bp_window_f] = data.mask[:, :bp_window_f]
 
-  return new_data
+    return new_data
 
 
 def add_uncertainties(data):
 
-  data = ensure_mask(data)
-  rms = np.zeros(data.shape[1])
+    data = ensure_mask(data)
+    rms = np.zeros(data.shape[1])
 
-  for i in range(data.shape[1]):
-    flat = bn.move_nanmean(data[:, i], params.un_bp_window_t, axis=0)
-    flat = np.roll(flat, -params.un_bp_window_t/2+1, axis=0)
-    flat = data[:, i]-flat
-    flat = np.ma.ravel(flat)
-    flat = flat[np.logical_not(flat.mask)]
-    if len(flat) != np.ma.MaskedArray.count(data[:, i]):
-      print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data[:, i])
-      exit(1)
-    flat = flat[np.logical_not(np.isnan(flat))]
- 
-    rms[i] = float(np.std(flat))		# Will be Nan if whole channel masked
-    
-  return rms
-
+    for i in range(data.shape[1]):
+        flat = bn.move_nanmean(data[:, i], params.un_bp_window_t, axis=0)
+        flat = np.roll(flat, -params.un_bp_window_t/2+1, axis=0)
+        flat = data[:, i]-flat
+        flat = np.ma.ravel(flat)
+        flat = flat[np.logical_not(flat.mask)]
+        if len(flat) != np.ma.MaskedArray.count(data[:, i]):
+            print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data[:, i])
+            exit(1)
+        flat = flat[np.logical_not(np.isnan(flat))]
+        
+        rms[i] = float(np.std(flat))		# Will be Nan if whole channel masked
+        
+    return rms
   
 
 import scipy.optimize
 def statistics(data):	# I think 8 is better for flattening
+    
+    def num2str(x):
+        return ( "%.3f" % x )
+        
+    # Define model function to be used to fit to the data
+    def gauss(x, *p):
+        A, mu, sigma = p
+        return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+        
+    def gauss_fit(in_data):
+        # p0 is the initial guess for the fitting coefficients (A, mu and sigma above)
+        p0 = [np.max(in_data), np.argmax(in_data), np.std(in_data)]
 
-  def num2str(x):
-    return ( "%.3f" % x )
+        coeff, var_matrix = scipy.optimize.curve_fit(gauss, np.array(range(len(in_data))), in_data, p0=p0)
 
-  # Define model function to be used to fit to the data
-  def gauss(x, *p):
-    A, mu, sigma = p
-    return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+        return coeff, np.sqrt(np.mean(np.diag(var_matrix)))
+        
+    data = ensure_mask(data)
 
-  def gauss_fit(in_data):
-
-    # p0 is the initial guess for the fitting coefficients (A, mu and sigma above)
-    p0 = [np.max(in_data), np.argmax(in_data), np.std(in_data)]
-
-    coeff, var_matrix = scipy.optimize.curve_fit(gauss, np.array(range(len(in_data))), in_data, p0=p0)
-
-    return coeff, np.sqrt(np.mean(np.diag(var_matrix)))
-
-  data = ensure_mask(data)
-
-  # Now can use the demeaning
-  flat = bn.move_nanmean(data, params.st_bp_window_t, axis=0)
-  flat = np.roll(flat, -params.st_bp_window_t/2+1, axis=0)
-  flat = bn.move_nanmean(flat, params.st_bp_window_f, axis=1)
-  flat = np.roll(flat, -params.st_bp_window_f/2+1, axis=1)
-  flat = data-flat
-  flat = np.ma.ravel(flat)
-  flat = flat[np.logical_not(flat.mask)]
-  if len(flat) != np.ma.MaskedArray.count(data):
-    print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data)
-    exit(1)
-  flat = flat[np.logical_not(np.isnan(flat))]
-  flat -= np.mean(flat)
-
-  # Print stats. Some are from the data, others from the flattened data
-  print "Gaussian statistics, from de-meaned data:"
-  print "  Min", num2str(np.min(flat)), "Max", num2str(np.max(flat)), "Std", num2str(np.std(flat)),
-  print "Skewness", num2str(skew(flat)), "Kurtosis", num2str(kurtosis(flat, fisher=True))
-  print "Statistics from data, not de-meaned:"
-  print "  Min", num2str(np.ma.min(data)), "Max", num2str(np.ma.max(data)), "Std", num2str(np.ma.std(data))
-  total = data.shape[0]*data.shape[1]
-  num_in = np.ma.MaskedArray.count(data)
-  print "Flags:", ( "%.3f%%" % (100*(total-num_in)/total) ), "flagged (num:"+str(total-num_in)+")" 
-
-
-  # Get histogram for Gauss fit
-  histogram = np.zeros((params.histogram_length, 2))
-  hist = np.histogram(flat, params.histogram_length)
-  histogram[:, 0] = hist[1][:params.histogram_length]
-  histogram[:, 1] = hist[0]
-  np.savetxt("hist_data.dat", histogram)
-
-  # See how Gaussian it is
-  try:
-    coeff, err = gauss_fit(histogram[:, 1])
-    print "Gauss fit error", ( "%.3f" % err ), "(hoping for < 5)"
-    histogram[:, 1] = np.array([gauss(i, coeff[0], coeff[1], coeff[2]) for i in range(len(histogram))])
-    np.savetxt("hist_fit.dat", histogram)
-
-  except: print "Gauss fit failed"
+    # Now can use the demeaning
+    flat = bn.move_nanmean(data, params.st_bp_window_t, axis=0)
+    flat = np.roll(flat, -params.st_bp_window_t/2+1, axis=0)
+    flat = bn.move_nanmean(flat, params.st_bp_window_f, axis=1)
+    flat = np.roll(flat, -params.st_bp_window_f/2+1, axis=1)
+    flat = data-flat
+    flat = np.ma.ravel(flat)
+    flat = flat[np.logical_not(flat.mask)]
+    if len(flat) != np.ma.MaskedArray.count(data):
+        print "ERROR: mask not preserved in statistics", len(flat), np.ma.MaskedArray.count(data)
+        exit(1)
+    flat = flat[np.logical_not(np.isnan(flat))]
+    flat -= np.mean(flat)
+    
+    # Print stats. Some are from the data, others from the flattened data
+    print "Gaussian statistics, from de-meaned data:"
+    print "  Min", num2str(np.min(flat)), "Max", num2str(np.max(flat)), "Std", num2str(np.std(flat)),
+    print "Skewness", num2str(skew(flat)), "Kurtosis", num2str(kurtosis(flat, fisher=True))
+    print "Statistics from data, not de-meaned:"
+    print "  Min", num2str(np.ma.min(data)), "Max", num2str(np.ma.max(data)), "Std", num2str(np.ma.std(data))
+    total = data.shape[0]*data.shape[1]
+    num_in = np.ma.MaskedArray.count(data)
+    print "Flags:", ( "%.3f%%" % (100*(total-num_in)/total) ), "flagged (num:"+str(total-num_in)+")" 
+    
+    # Get histogram for Gauss fit
+    histogram = np.zeros((params.histogram_length, 2))
+    hist = np.histogram(flat, params.histogram_length)
+    histogram[:, 0] = hist[1][:params.histogram_length]
+    histogram[:, 1] = hist[0]
+    np.savetxt("hist_data.dat", histogram)
+    
+    # See how Gaussian it is
+    try:
+        coeff, err = gauss_fit(histogram[:, 1])
+        print "Gauss fit error", ( "%.3f" % err ), "(hoping for < 5)"
+        histogram[:, 1] = np.array([gauss(i, coeff[0], coeff[1], coeff[2]) for i in range(len(histogram))])
+        np.savetxt("hist_fit.dat", histogram)
+        
+    except:
+        print "Gauss fit failed"
 
 
     

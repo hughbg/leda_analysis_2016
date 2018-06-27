@@ -16,6 +16,7 @@ from leda_cal.leda_cal import *
 from leda_cal.skymodel import *
 from leda_cal.dpflgr import *
 from leda_cal.useful import fit_poly, closest, trim, fourier_fit, poly_fit, rebin
+from leda_cal.git import get_repo_fingerprint
 
 from lmfit import minimize, Parameters, report_fit
 sns.set_style('ticks')
@@ -139,7 +140,9 @@ def quicklook(filename):
     print np.std(rebin(res_7p, 8))
     #print np.std(rebin(res_5p, 8))
     #plt.plot(rebin(fc, 8), rebin(res_3p3f, 8))
-
+    
+    plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
+    
     plt.show()
 
 
