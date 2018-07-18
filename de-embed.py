@@ -65,7 +65,7 @@ def load_cable_s21(fname, leda_frequencies):
 def generate_T_amb_hot(length, s21_dB):
 
   Q = 14.9-6.95
-  T_hot = [ T_amb_value*(10**((Q+s21_dB[i]/2)/10)+1) for i in range(length) ]
+  T_hot = [ T_amb_value*(10**((Q+s21_dB[i])/10)+1) for i in range(length) ]
 
   return np.full(length, T_amb_value), np.array(T_hot)
 
@@ -118,7 +118,7 @@ def do_calculation(P_hot, P_cold, T_hot, T_amb, Gamma_hot, Gamma_cold, Gamma_lna
   Gamma_s_66 = (Z_66-Z_0)/(Z_66+Z_0)
   # Should be calculated as: Gamma_s = Gamma_T* (S21**2)
   # where Gamma _T is the termination reflection coefficient. - Edward
-  Gamma_s = np.array([ 0, -1, 1, Gamma_s_47  ])*s21_val**2		# OFF, OPEN, SHORT, 47
+  Gamma_s = np.array([ 0, 1, -1, Gamma_s_47  ])*s21_val**2		# OFF, OPEN, SHORT, 47
   print Gamma_s
   # Start calculating
 
