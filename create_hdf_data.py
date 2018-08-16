@@ -33,25 +33,50 @@ f_leda = f_leda[i0:i1]
 ##################
 ## ANT + LNA
 ##################
+#Just change these paths
+#first file is balun file and second file is lna
 
-a252x_s11 = s2p_interp(f_leda, 'field-data/field-jan-13/vna-ant252-a2-s11-3.s2p',
-           'fee-vna/dcp-a2-s11.s2p')
+if False:		# Old cal
+  a252x_s11 = s2p_interp(f_leda, 'field-data-2017/field-jan-13/vna-ant252-a2-s11-3.s2p',
+           'fee-vna/balun.cal.2016/dcp-a2-s11.s2p')
 
-a254x_s11 = s2p_interp(f_leda, 'field-data/field-jan-13/vna-ant254-c2-s11.s2p',
-           'fee-vna/dcp-c2-s11.s2p')
+  a254x_s11 = s2p_interp(f_leda, 'field-data-2017/field-jan-13/vna-ant254-c2-s11.s2p',
+           'fee-vna/balun.cal.2016/dcp-c2-s11.s2p')
 
-a255x_s11 = s2p_interp(f_leda, 'field-data/field-jan-13/vna-ant255-d2-s11.s2p',
-           'fee-vna/dcp-d2-s11.s2p')
+  a255x_s11 = s2p_interp(f_leda, 'field-data-2017/field-jan-13/vna-ant255-d2-s11.s2p',
+           'fee-vna/balun.cal.2016/dcp-d2-s11.s2p')
 
-a252y_s11 = s2p_interp(f_leda, 'field-data/field-jan-13/vna-ant252-a2-s11-3.s2p',
-           'fee-vna/dcp-a2-s11.s2p')
+  a252y_s11 = s2p_interp(f_leda, 'field-data-2017/field-jan-13/vna-ant252-a2-s11-3.s2p',
+           'fee-vna/balun.cal.2016/dcp-a2-s11.s2p')
 
-a254y_s11 = s2p_interp(f_leda, 'field-data/field-jan-13/vna-ant254-c2-s11.s2p',
-           'fee-vna/dcp-c2-s11.s2p')
+  a254y_s11 = s2p_interp(f_leda, 'field-data-2017/field-jan-13/vna-ant254-c2-s11.s2p',
+           'fee-vna/balun.cal.2016/dcp-c2-s11.s2p')
 
-a255y_s11 = s2p_interp(f_leda, 'field-data/field-jan-13/vna-ant255-d2-s11.s2p',
-           'fee-vna/dcp-d2-s11.s2p')
+  a255y_s11 = s2p_interp(f_leda, 'field-data-2017/field-jan-13/vna-ant255-d2-s11.s2p',
+           'fee-vna/balun.cal.2016/dcp-d2-s11.s2p')
+else: 			#	New Cal
 
+
+  a252x_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_252A.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
+
+  a254x_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_254A.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
+
+  a255x_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_255A.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
+
+  a252y_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_252B.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
+
+  a254y_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_254B.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
+
+  a255y_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_255B.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
+
+  a256y_s11 = s2p_interp(f_leda, 'balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_256B.s2p',
+           'lna.s11.18may/leda.lna.s11.cable.de-embedded_252A.s2p')
 
 
 ant_s11_dict = {
@@ -67,7 +92,7 @@ ant_s11_dict = {
 
 hkl.dump(ant_s11_dict, 'cal_data/vna_calibration.hkl')
 
-
+exit()    # Need scikit-rf module to run the rest
 ###########
 ## BALUN
 ###########
