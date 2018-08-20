@@ -106,7 +106,7 @@ def do_calculation(P_hot, P_cold, T_hot, T_amb, Gamma_hot, Gamma_cold, Gamma_lna
     print "Error, expecting 4 measurements OFF, SHORT, 47pf, 66pf",
     exit(1)
 
-  print "P_hot", P_hot, "P_cold", P_cold, "T_hot", T_hot, "T_amb", T_amb, "Gamma_hot", Gamma_hot, "Gamma_cold", Gamma_cold, "Gamma_lna", Gamma_lna, "P_meas", P_meas
+  #print "P_hot", P_hot, "P_cold", P_cold, "T_hot", T_hot, "T_amb", T_amb, "Gamma_hot", Gamma_hot, "Gamma_cold", Gamma_cold, "Gamma_lna", Gamma_lna, "P_meas", P_meas
   
 
   # Firstly sort out Gamma_s for the 4 measurements. Edward uses a different derivation - 
@@ -118,17 +118,13 @@ def do_calculation(P_hot, P_cold, T_hot, T_amb, Gamma_hot, Gamma_cold, Gamma_lna
   Gamma_s_66 = (Z_66-Z_0)/(Z_66+Z_0)
   # Should be calculated as: Gamma_s = Gamma_T* (S21**2)
   # where Gamma _T is the termination reflection coefficient. - Edward
-  Gamma_s = np.array([ 0, 1, -1, Gamma_s_47  ])*s21_val**2		# OFF, OPEN, SHORT, 47
-  print Gamma_s
+  Gamma_s = np.array([ 0, 1, -1, Gamma_s_47  ])   #   *s21_val**2		# OFF, OPEN, SHORT, 47
+
   # Start calculating
 
   Gamma_ns = (Gamma_hot+Gamma_cold)/2
-  S_P_T = (P_hot-P_cold)/(T_hot-T_amb) * abs(1-Gamma_lna*Gamma_ns)**2/(1-abs(Gamma_ns)**2)   # Edward drops the second term 
-  print "S_P_T", S_P_T
+  S_P_T = (P_hot-P_cold)/(T_hot-T_amb) * abs(1-Gamma_lna*Gamma_ns)**2/(1-abs(Gamma_ns)**2)   # Edward drops the second term sometimes
 
-  # These values work for the test files.
-  Gamma_s =   [0, complex(0.836,-0.38), complex(-0.836, 0.38), complex(-0.406, -0.821) ]
-  print "Gamma_s", Gamma_s
 
   # Build T, X, matrices
 
@@ -144,8 +140,7 @@ def do_calculation(P_hot, P_cold, T_hot, T_amb, Gamma_hot, Gamma_cold, Gamma_lna
 
     X.append([ (1-abs(Gamma_s[i])**2), abs(1-Gamma_s[i])**2, abs(1+Gamma_s[i])**2, 2*Gamma_s[i].imag ] )	# X_row_i
   
-  print "T",T
-  print "X", X
+
   T = np.matrix(T)
   X = np.matrix(X)
 
@@ -155,7 +150,7 @@ def do_calculation(P_hot, P_cold, T_hot, T_amb, Gamma_hot, Gamma_cold, Gamma_lna
 
   C = X.I*T				# we have square matrix so do it the easy way
 
-  print C
+
   
   # Extract result values
   R_N = C[1]/Y_0
@@ -210,7 +205,7 @@ for i in range(len(array_P_meas)):
 array_P_meas = np.array(array_P_meas)	
 
 # Loop over frequencies from 30-88MHz
-for i in [ 2500 ]: #range(1250, 3666):			60.015MHz only
+for i in range(1250, 3666):		#	60.015MHz only
   print "Freq", frequencies[i],
   try:
      R_N, B_opt, G_opt, T_min  = do_calculation(array_P_hot[i], array_P_cold[i], array_T_hot[i], array_T_amb[i], array_Gamma_hot[i], 
