@@ -6,6 +6,7 @@
 Compute noise parameters for a device-under-test using Edward's method.
 """
 
+import hickle
 import numpy as np
 import pylab as plt
 from scipy.interpolate import interp1d as interp
@@ -83,14 +84,14 @@ class Sparam(object):
 def read_anritsu_s11(filename):
     """ Read data from Anristu VNA and return instance of Sparam class """
     d = np.genfromtxt(filename, delimiter=',', skip_header=8, skip_footer=1)
-    f_mhz = d[:, 0] / 1e6
+    f_mhz = d[:, 0] / 1e6; 
     s11 = interp(f_mhz, to_complex(d[:,1:], linear=False, radians=False))
     S = Sparam(f_mhz, s11)
     return S
 
 def read_cable_sparams(filename):
     """ Read data from cable CSV files and return instance of Sparam class """
-    d = np.genfromtxt(filename, delimiter=',', skip_header=1, skip_footer=0)
+    d = np.genfromtxt(filename, delimiter=',', skip_header=5, skip_footer=0)
     f = d[:, 0]
     s11 = interp(f, to_complex(d[:,1:3], linear=False, radians=False))
     s21 = interp(f, to_complex(d[:,3:5], linear=False, radians=False))
@@ -232,12 +233,15 @@ def compute_T_nw(F_min, R_N, B_opt, G_opt, GM_S):
     GM_opt = Y_to_GM(Y_opt)
     F      = compute_NF(F_min, R_N, GM_S, GM_opt)
     T      =  NF_to_NT(F)
+    
     return T
 
 def compute_G_S(S11_S, S11_dut):
     """ Compute Transducer gain quantity G_S """
     G_S = (1.0 - np.abs(S11_S)) / np.abs(1.0 - S11_S * S11_dut)
     return G_S
+
+
 
 def apply_calibration(P_3ss, T_fe_hot, T_fe_cold,
                       T_rx_cal, T_rx_ant,
@@ -282,88 +286,102 @@ if __name__ == "__main__":
 
 
     # Set frequency ranges to interpolate data onto
-    f_mhz = np.linspace(30, 87.5, 201)
-    testpoint = 'LNA0'
+    f_mhz = np.linspace(30, 88, 212)
+    testpoint = 'SW0'
 
     ###################################
     ##   READ VNA AND SPECTRUM DATA  ##
     ###################################
 
-## Two sets of noise parameters for each signal path.  One measured at input to switch.  One at input to LNA.
-## Measurements explicitly tied to noise parameter measurements:
-##  (i)   2m and 0.9m cables w/ 5 different end loads:  open, short, capacitance 1, capacitance 2, and 50 ohm termination
-##  (ii)  Injected power by Keysight noise source, two states, ON and OFF
-##
-## For SW0 test point measurements are made in a 5-5-5 sec cycle.  Only one of the 5 sec intervals delivers data for the
-## 0.9 and 2m cables.  The other two report the power of the hot and the cold diode paths.  The latter data can be used to cancel
-## LNA variability.  NOTE:  The system varies slowly.  It SHOULD not be necessary to use EVERY 5 sec record for the hot and cold
-## diode states.
-##
-## For LNA0 test point, each measurement generates three files, one for each 5 sec.  These can be averaged together for use.
-
-
     if testpoint == 'SW0':
-        # Load lab measurements of open, short, termination and capacitor reflection coefficients   ???
-        c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')
-        c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')
-        o   = read_anritsu_s11('cal_data/open0702.csv')
-        s   = read_anritsu_s11('cal_data/short0702.csv')
-        l   = read_anritsu_s11('cal_data/R50p9_0702.csv')
+ 
 
-        # Load 0.9 and 2m cable S-params
-        cable_0p9m = read_cable_sparams('cal_data/cable_0p9.csv')
-        cable_2m   = read_cable_sparams('cal_data/cable_2m.csv')
+
+	# New from insertion ##############
+
+        # Load lab measurements of open, short, termination and capacitor S11
+    # LJG NOTE: Need to examine origin of cable S11s and to update w/ cascaded btw-series adapters in the case of capacitors.
+
+   	c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')
+    	c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')
+    	o  = read_anritsu_s11('cal_data/open0702.csv')
+    	s  = read_anritsu_s11('cal_data/short0702.csv')
+    	l  = read_anritsu_s11('cal_data/R50p9_0702.csv')
+
+
+    # Load 0.9 and 2m cable S-params
+
+    	cable_0p9m = read_cable_sparams('../cable.cal.18may/leda.0p9m.cable.and.MS147.18may31.18aug16.s2p.csv')
+    	cable_2m  = read_cable_sparams('../cable.cal.18may/leda.2.0m.cable.and.MS147.18may31.18aug16.s2p.csv')
+    
 
         # Load Keysight 346B noise source S11 values
-        s2p_hot  = read_s2p_s11('cal_data/346-7bw3.on.s11.s2p')
-        s2p_cold = read_s2p_s11('cal_data/346-7bw3.off.s11.s2p')
 
-        # Load LNA S11 values
-        s2p_lna  = read_s2p_s11('cal_data/254A/254a.lna.rl.18may13.s2p')
-    
-        # Read balun S11 measurements
-        s2p_ant = read_s2p_s11('cal_data/254A/4a.m.1.s2p', s11_col=1)
-
-        # Now load uncalibrated spectra corresponding to reference sources
-        P_2m_open    = read_spectrum('cal_data/254A/ant_254A.SW0.2p0m.OPEN.skypath.dat')
-        P_2m_short   = read_spectrum('cal_data/254A/ant_254A.SW0.2p0m.SHORT.skypath.dat')
-        P_2m_c47     = read_spectrum('cal_data/254A/ant_254A.SW0.2p0m.47pf.skypath.dat')
-        P_2m_c66     = read_spectrum('cal_data/254A/ant_254A.SW0.2p0m.66pf.skypath.dat')
-        P_0p9m_open  = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.OPEN.skypath.dat')
-        P_0p9m_short = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.SHORT.skypath.dat')
-        P_0p9m_c47   = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.47pf.skypath.dat')
-        P_0p9m_c66   = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.66pf.skypath.dat')
-
-        # Load / compute spectra and temperature for hot and ambient reference sources
-        T_cold, T_hot = generate_T_amb_hot(len(f_mhz))                                        ## ???
-        P_hot      = read_spectrum('cal_data/254A/ant_254A.SW0.yf346-7.on.skypath.dat')
-        P_cold     = read_spectrum('cal_data/254A/ant_254A.SW0.yf346-7.off.skypath.dat')
+    	s2p_hot = read_s2p_s11('cal_data/346-7bw3.on.s11.s2p')
+    	s2p_cold = read_s2p_s11('cal_data/346-7bw3.off.s11.s2p')
 
 
-        # Load noise diode states - select hot and cold from one of many configurations.
-        P_fe_cold    = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.OPEN.coldpath.dat')
-        P_fe_hot     = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.OPEN.hotpath.dat')
+    # LNA S11 values are in specific columns in the file 
+        # leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt
+   
+    	x252a_col = 1
+    	x252b_col = 3
+    	x254a_col = 5
+    	x254b_col = 7
+    	x255a_col = 9
+    	x255b_col = 11
+    	x256b_col = 13
+
+ 
+       # Load de-embedded LNA S11 figures
+    	s2p_lna = read_s2p_s11('../lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', s11_col=x255a_col)
+
+ 
+      # Read balun S11 measurements
+        # HG NOTE:  Conversion from AF impedance figures.
+    	s2p_ant = read_s2p_s11('../balun.18may/fialkov.de-embed.baluns.Using.Lab.Measued.Cables.18aug01/Zres_255A.s2p', s11_col=1)
+
+        
+    # Now load uncalibrated spectra corresponding to reference sources
+    	P_2m_open  = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.2p0m.OPEN.skypath.2018-05-26_08-03-53.dat')
+    	P_2m_short  = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.2p0m.SHORT.skypath.2018-05-26_08-05-43.dat')
+    	P_2m_c47   = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.2p0m.47pf.skypath.2018-05-26_08-09-24.dat')
+    	P_2m_c66   = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.2p0m.66pf.skypath.2018-05-26_08-10-21.dat')
+    	P_0p9m_open = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.0p9m.OPEN.skypath.2018-05-26_08-13-36.dat')
+    	P_0p9m_short = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.0p9m.SHORT.skypath.2018-05-26_08-16-19.dat')
+    	P_0p9m_c47  = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.0p9m.47pf.skypath.2018-05-26_08-19-32.dat')
+    	P_0p9m_c66  = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.0p9m.66pf.skypath.2018-05-26_08-20-57.dat')
+
+    # Load / compute spectra and temperature for hot and ambient reference sources
+        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.
+    	T_cold, T_hot = generate_T_amb_hot(len(f_mhz))                                   
+    	P_hot      = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.yf346-7.on.skypath.2018-05-26_08-24-42.dat')
+    	P_cold      = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.yf346-7.off.skypath.2018-05-26_08-23-46.dat')
+
+
+    # Load noise diode states - select hot and cold from one of many configurations.
+    	P_fe_cold  = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.2p0m.TERM.coldpath.2018-05-26_08-07-08.dat')
+    	P_fe_hot   = read_spectrum('../npcal/npcal.data.collected/255a/ant_255A.SW0.2p0m.TERM.hotpath.2018-05-26_08-07-08.dat')
+
 
     elif testpoint == 'LNA0':
-            # Load lab measurements of open, short, termination and capacitor reflection coefficients   ???
-            c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')
+            # Load open/short/load/capacitor reflection coefficients
+            c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')		# Gamma_s arrays
             c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')
             o   = read_anritsu_s11('cal_data/open0702.csv')
             s   = read_anritsu_s11('cal_data/short0702.csv')
             l   = read_anritsu_s11('cal_data/R50p9_0702.csv')
 
-            # Load 0.9 and 2m cable S-params
-            cable_0p9m = read_cable_sparams('cal_data/cable_0p9.csv')
+            # Read cable s-params
+            cable_0p9m = read_cable_sparams('cal_data/cable_0p9.csv')		#array_cable_21, array_cable_dB
             cable_2m   = read_cable_sparams('cal_data/cable_2m.csv')
 
-            # Load Keysight 346B noise source S11 values
+            # Load VNA measurements of HP346 and LNA
+            s2p_lna  = read_s2p_s11('cal_data/254A/254a.lna.rl.18may13.s2p')
             s2p_hot  = read_s2p_s11('cal_data/346-7bw3.on.s11.s2p')
             s2p_cold = read_s2p_s11('cal_data/346-7bw3.off.s11.s2p')
 
-            # Load LNA S11 values
-            s2p_lna  = read_s2p_s11('cal_data/254A/254a.lna.rl.18may13.s2p')
-
-            # Read balun S11 measurements
+            # Read Antenna S11
             s2p_ant = read_s2p_s11('cal_data/254A/4a.m.1.s2p', s11_col=1)
 
             # Now load uncalibrated spectra corresponding to reference sources
@@ -377,16 +395,17 @@ if __name__ == "__main__":
             P_0p9m_c66   = read_spectrum('cal_data/254A.LNA0/ant_254A.LNA0.0p9m.66pf.dat')
 
             # Load / compute spectra and temperature for hot and ambient reference sources
-            T_cold, T_hot = generate_T_amb_hot(len(f_mhz))                                    ##  ???
+            T_cold, T_hot = generate_T_amb_hot(len(f_mhz))
             P_hot      = read_spectrum('cal_data/254A.LNA0/ant_254A.LNA0.yf346-7.on.dat')
             P_cold     = read_spectrum('cal_data/254A.LNA0/ant_254A.LNA0.yf346-7.off.dat')
 
-            # Load noise diode states - select hot and cold from one of many configurations.   ??? ERROR ???
-            P_fe_cold    = read_spectrum('cal_data/254A.LNA0/ant_254A.coldpath.dat')
+            # Load noise diode states
+            P_fe_cold    = read_spectrum('cal_data/254A.LNA0/ant_254A.coldpath.dat')	# Suspicious
             P_fe_hot     = read_spectrum('cal_data/254A.LNA0/ant_254A.hotpath.dat')
 
     # Compute reflection coefficient for cable + O/S/L standards
-    cable_2m_open    = o.s11(f_mhz) * cable_2m.s21(f_mhz)**2
+
+    cable_2m_open    = o.s11(f_mhz) * cable_2m.s21(f_mhz)**2; 
     cable_2m_short   = s.s11(f_mhz) * cable_2m.s21(f_mhz)**2
     cable_2m_load    = l.s11(f_mhz) * cable_2m.s21(f_mhz)**2
     cable_2m_c47     = c47.s11(f_mhz) * cable_2m.s21(f_mhz)**2
@@ -464,25 +483,53 @@ if __name__ == "__main__":
     T_rx_cal = compute_T_nw(F_min, R_N, B_opt, G_opt, (GM_hot+GM_cold)/2)
     #T_rx_cal = T_rx_yfm
 
+#Dump:
     Y_fe_cold = P_fe_cold.d(f_mhz) / P_cold.d(f_mhz)
     T_fe_cold = (Y_fe_cold - 1) * T_rx_cal + Y_fe_cold * T_cold
 
     Y_fe_hot = P_fe_hot.d(f_mhz) / P_cold.d(f_mhz)
     T_fe_hot = (Y_fe_hot - 1) * T_rx_cal + Y_fe_hot * T_cold
 
+    nw_dict = { "f" : f_mhz }
+    T_nw_cal_ant = compute_T_nw(F_min, R_N, B_opt, G_opt, GM_ant)
+    for ant in [ "a252x", "a252y", "a254x", "a254y", "a255x", "a255y" ]:
+      nw_dict[ant] = { "f": f_mhz, "T_fe_hot": T_fe_hot,  "T_fe_cold": T_fe_cold, "T_rx_cal": T_rx_cal, 
+			"T_nw_cal_ant": T_nw_cal_ant, "GM_ant": GM_ant, "GM_lna": GM_lna, "P_fe_cold" : P_fe_cold.d(f_mhz), "P_fe_hot" : P_fe_hot.d(f_mhz) }
+    hickle.dump(nw_dict, "noisewave2.0.hkl"); exit()
+
 
     # 3SS stuff
+	# These intended to replace T_fe_hot T_fe_cold
     P_3ss = (P_cold.d(f_mhz) - P_fe_cold.d(f_mhz)) / (P_fe_hot.d(f_mhz) - P_fe_cold.d(f_mhz))
-
     T_nw_cal0 = compute_T_nw(F_min, R_N, B_opt, G_opt, GM_cold)
     T_calibrated0 = apply_calibration(P_3ss, T_fe_hot, T_fe_cold,
                       T_rx_cal, T_nw_cal0, GM_cold, GM_lna)
+    print P_3ss.shape; exit()
 
 
     P_3ss_hot = (P_hot.d(f_mhz) - P_fe_cold.d(f_mhz)) / (P_fe_hot.d(f_mhz) - P_fe_cold.d(f_mhz))
     T_nw_cal_hot = compute_T_nw(F_min, R_N, B_opt, G_opt, GM_hot)
     T_calibrated1 = apply_calibration(P_3ss_hot, T_fe_hot, T_fe_cold,
                       T_rx_cal, T_nw_cal_hot, GM_hot, GM_lna)
+
+#Calibrated temp that system gives for 3ss corrected system where sky signal 
+# connected to hp noise source in the off and the on state above
+#Danny's approach uses SW0
+#Make plots of plots of R_N etc 
+#Receiever temp recalibrated should give a flat line out. Recover what you put in.
+
+      
+
+    #T_ant = apply_3ss_cal(....)
+    #T_nw = compute_T_nw(F_min, R_N, B_opt, G_opt, GM_ant)
+    #T_cal_ant = apply_calibration(T_ant, T_fe_hot, T_fe_cold,
+    #                  T_rx_cal, T_nw, GM_ant, GM_lna)
+
+    
+    
+    plt.plot(T_calibrated1, label="T_calibrated1")
+    plt.plot(P_3ss_hot, label="P_3ss_hot")
+    plt.legend();plt.show();  exit()
 
     # Difference in Y-factor vs Edward method
     #plt.plot(T_rx_cal / T_rx_yfm)
