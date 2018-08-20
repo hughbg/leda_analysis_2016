@@ -304,6 +304,7 @@ if __name__ == "__main__":
 
     if testpoint == 'SW0':
         # Load lab measurements of open, short, termination and capacitor reflection coefficients   ???
+        # LJG NOTE: Need to examine origin of cable S11s and to update w/ cascaded btw-series adapters.
         c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')
         c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')
         o   = read_anritsu_s11('cal_data/open0702.csv')
@@ -345,7 +346,8 @@ if __name__ == "__main__":
         P_fe_hot     = read_spectrum('cal_data/254A/ant_254A.SW0.0p9m.OPEN.hotpath.dat')
 
     elif testpoint == 'LNA0':
-            # Load lab measurements of open, short, termination and capacitor reflection coefficients   ???
+            # Load lab measurements of open, short, termination and capacitor reflection coefficients
+        
             c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')
             c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')
             o   = read_anritsu_s11('cal_data/open0702.csv')

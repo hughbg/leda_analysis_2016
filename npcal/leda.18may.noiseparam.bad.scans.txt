@@ -1,0 +1,116 @@
+
+
+
+
+RX w/ internal  NP cal
+RX w/ internal  balun S11
+MEM switching
+
+
+
+Low-S11 atts.
+T-sensors
+ground screen
+
+
+Test in the lot
+
+
+
+Gain pattern:
+Reference TX antenna in correlation with radiometer for a portable
+tethered reflective balloon w/ laser distance measurement from reference position.
+
+
+
+
+6 mo tempSAO = 95.4k
+svc VNA
+better cal kit
+balloon
+ref. antenna
+semisolid ground screen
+
+
+
+BAD SCANS:  
+=================
+
+252A YF:
+
+
+
+
+
+254A YF:
+ant_254A.SW0.yf346-7.off.coldpath.2018-05-24_13-52-18.datant_254A.SW0.yf346-7.off.hotpath.2018-05-24_13-52-18.datant_254A.SW0.yf346-7.off.skypath.2018-05-24_13-52-18.datant_254A.SW0.yf346-7.on.coldpath.2018-05-24_13-53-13.datant_254A.SW0.yf346-7.on.hotpath.2018-05-24_13-53-13.datant_254A.SW0.yf346-7.on.skypath.2018-05-24_13-53-13.dat
+
+ant_254A.LNA0.yf346-7.on.1.2018-05-24_14-30-06.dat
+
+
+254A Cables:
+All good.
+
+=================
+
+254B YF:
+All good.
+
+254B Cables:
+SW0 0.9m sky, probably one capacitor measured twice.  
+Unclear which, 47 or 66pF corresponds to data acquired.
+ant_254B.SW0.0p9m.47pf.skypath.2018-05-24_16-18-57.dat
+ant_254B.SW0.0p9m.66pf.skypath.2018-05-24_16-19-56.dat
+
+2m open SW0 sky path
+ant_254B.SW0.2p0m.OPEN.skypath.2018-05-24_15-36-57.dat
+
+2m 66pF LNA0 
+ant_254B.LNA0.2p0m.66pf.1.2018-05-24_16-39-41.dat
+
+
+
+255A 
+
+All good, but SW0 2m waveforms differ considerably from those for LNA0.
+
+
+255B
+YF LNA0 bad start
+ant_255B.LNA0.YF.on.1.2018-05-26_10-32-23.dat
+ant_255B.LNA0.YF.on.2.2018-05-26_10-32-23.dat
+
+YF SW0 bad start
+ant_255B.SW0.YF.on.skypath.2018-05-26_09-41-47.dat
+
+
+
+
+256B YF:  use  OFF no. 2 @ ~1945 and 2015 PDT
+          use  ON  no. 3 @ ~1945 and 2015 PDT
+
+
+ant_256B.LNA0.yf346-7.off.3.2018-05-24_19-46-47.dat
+ant_256B.LNA0.yf346-7.off.3.2018-05-24_20-15-23.dat
+ant_256B.LNA0.yf346-7.on.2.2018-05-24_19-48-10.dat
+ant_256B.LNA0.yf346-7.on.2.2018-05-24_20-16-18.dat
+ant_256B.LNA0.yf346-7.on.1.2018-05-24_19-48-10.dat
+ant_256B.LNA0.yf346-7.on.1.2018-05-24_20-16-18.dat
+ant_256B.LNA0.yf346-7.off.1.2018-05-24_19-46-47.dat
+ant_256B.LNA0.yf346-7.off.1.2018-05-24_20-15-23.dat
+ant_256B.LNA0.yf346-7.on.2.2018-05-24_19-48-10.dat
+ant_256B.LNA0.yf346-7.on.2.2018-05-24_20-16-18.dat
+ant_256B.LNA0.yf346-7.off.3.2018-05-24_20-15-23.dat
+ant_256B.LNA0.yf346-7.off.3.2018-05-24_19-46-47.dat
+
+
+
+
+
+
+
+DCP:  may be no UU corrxn.
+
+ET:  agree w/ DCP memo?
+ET:  what is learned from LNA0 and SW0 data?
+ET:  Hirose straight through
