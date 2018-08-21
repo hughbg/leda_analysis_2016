@@ -1,0 +1,12 @@
+
+
+
+
+255B
+        P_2m_load    = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.TERM.skypath.2018-05-26_09-55-20.dat’)
+        P_0p9_load   = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.TERM.skypath.2018-05-26_10-07-00.dat’)
+
+255A
+
+        P_2m_load    = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.TERM.skypath.2018-05-26_08-07-08.dat’)
+        P_0p9_load   = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.TERM.skypath.2018-05-26_08-17-42.dat’)
