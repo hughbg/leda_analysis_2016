@@ -12,6 +12,7 @@ for f in files:
 
   f_out = open(f[:-3]+"s2p", "w")
   f_out.write("! Fake S2P created from impedances\n! FREQ.GHZ       S11DB        S11A       S21DB        S21A       S12DB        S12A       S22DB        S22A\n")
+  for i in range(21): f_out.write("!\n")
 
   for d in data:
     freq = d[0]*1e-3		# GHz
@@ -23,6 +24,7 @@ for f in files:
 
     f_out.write(" "+( "%8f" %  freq )+"\t"+( "%8f" % power)+"\t"+( "%8f" % angle)+"\t0\t0\t0\t0\t0\t0\n")
 
+  
   f_out.close()
 
     

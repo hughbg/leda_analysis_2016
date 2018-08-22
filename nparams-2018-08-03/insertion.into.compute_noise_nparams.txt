@@ -1,1 +1,241 @@
-## Code for signal paths 252A, 254A, 254B, 255A, 255BÊ Ê if testpoint == 'SW0':Ê Ê Ê Ê        # Load lab measurements of open, short, termination and capacitor S11Ê Ê Ê Ê # LJG NOTE: Need to examine origin of cable S11s and to update w/ cascaded btw-series adapters in the case of capacitors.Ê Ê Ê Ê c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')Ê Ê Ê Ê c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')Ê Ê Ê Ê o Ê = read_anritsu_s11('cal_data/open0702.csv')Ê Ê Ê Ê s Ê = read_anritsu_s11('cal_data/short0702.csv')Ê Ê Ê Ê l Ê = read_anritsu_s11('cal_data/R50p9_0702.csv')Ê Ê Ê Ê # Load 0.9 and 2m cable S-paramsÊ Ê Ê Ê cable_0p9m = read_cable_sparams('leda_analysis_2016/cable.cal.18may/leda.0.9m.cable.and.MS147.18may31.18aug16.s2p.csv')Ê Ê Ê Ê cable_2m Ê = read_cable_sparams('leda_analysis_2016/cable.cal.18may/leda.2.0m.cable.and.MS147.18may31.18aug16.s2p.csv')Ê Ê Ê Ê         # Load Keysight 346B noise source S11 valuesÊ Ê Ê Ê s2p_hotÊ = read_s2p_s11('leda_analysis_2016/nparams-2018-08-03/cal_data/346-7bw3.on.s11.s2p')Ê Ê Ê Ê s2p_cold = read_s2p_s11('leda_analysis_2016/nparams-2018-08-03/cal_data/346-7bw3.off.s11.s2p')Ê Ê Ê Ê # LNA S11 values are in specific columns in the file         # leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt           252a_col = 1        252b_col = 3        254a_col = 5        254b_col = 7        255a_col = 9        255b_col = 11        256b_col = 13Ê         # Load de-embedded LNA S11 figures        s2p_lnaÊ = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Ês11_col=255a_col)ÊÊ     Ê Ê # Read balun S11 measurements        # HG NOTE:  Conversion from AF impedance figures.        s2p_ant = read_s2p_s11('cal_data/255A/xxxxx.s2p', s11_col=1)Ê Ê Ê Ê # Now load uncalibrated spectra corresponding to reference sourcesÊ Ê Ê Ê P_2m_openÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.OPEN.skypath.2018-05-26_08-03-53.dat')Ê Ê Ê Ê P_2m_short Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.SHORT.skypath.2018-05-26_08-05-43.dat')Ê Ê Ê Ê P_2m_c47 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.47pf.skypath.2018-05-26_08-09-24.dat')Ê Ê Ê Ê P_2m_c66 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.66pf.skypath.2018-05-26_08-10-21.dat')Ê Ê Ê Ê P_0p9m_openÊ = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.OPEN.skypath.2018-05-26_08-13-36.dat')Ê Ê Ê Ê P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.SHORT.skypath.2018-05-26_08-16-19.dat')Ê Ê Ê Ê P_0p9m_c47 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.47pf.skypath.2018-05-26_08-19-32.dat')Ê Ê Ê Ê P_0p9m_c66 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.66pf.skypath.2018-05-26_08-20-57.dat')Ê Ê Ê Ê # Load / compute spectra and temperature for hot and ambient reference sources        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.   Ê Ê ÊT_cold, T_hot = generate_T_amb_hot(len(f_mhz))Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê                 ÊÊ Ê Ê Ê P_hotÊ Ê Ê    = read_spectrum('cal_data/255A/ant_255A.SW0.yf346-7.on.skypath.2018-05-26_08-24-42.dat')Ê Ê Ê Ê P_cold Ê Ê    = read_spectrum('cal_data/255A/ant_255A.SW0.yf346-7.off.skypath.2018-05-26_08-23-46.dat')Ê Ê Ê Ê # Load noise diode states - select hot and cold from one of many configurations.Ê Ê Ê Ê P_fe_coldÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.TERM.coldpath.2018-05-26_08-07-08.dat')Ê Ê Ê Ê P_fe_hot Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.TERM.hotpath.2018-05-26_08-07-08.dat')        ###############################        # Load de-embedded LNA S11 figures        s2p_lnaÊ = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Ês11_col=255b_col)ÊÊ Ê   Ê Ê  # Read balun S11 measurements        # HG NOTE:  Conversion from AF impedance figures.        s2p_ant = read_s2p_s11('cal_data/255B/xxxxx.s2p', s11_col=1)Ê Ê Ê # Now load uncalibrated spectra corresponding to reference sourcesÊ Ê Ê Ê P_2m_openÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.OPEN.skypath.2018-05-26_09-52-02.dat')Ê Ê Ê Ê P_2m_short Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.SHORT.skypath.2018-05-26_09-53-55.dat')Ê Ê Ê Ê P_2m_c47 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.47pf.skypath.2018-05-26_09-57-42.dat')Ê Ê Ê Ê P_2m_c66 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.66pf.skypath.2018-05-26_09-58-38.dat')Ê Ê Ê Ê P_0p9m_openÊ = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.OPEN.skypath.2018-05-26_10-02-47.dat')Ê Ê Ê Ê P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.SHORT.skypath.2018-05-26_10-05-07.dat')Ê Ê Ê Ê P_0p9m_c47 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.47pf.skypath.2018-05-26_10-08-52.dat')Ê Ê Ê Ê P_0p9m_c66 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.66pf.skypath.2018-05-26_10-10-47.dat')Ê Ê Ê Ê # Load / compute spectra and temperature for hot and ambient reference sources        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.   Ê Ê ÊT_cold, T_hot = generate_T_amb_hot(len(f_mhz))Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê                 ÊÊ Ê Ê Ê P_hotÊ Ê Ê    = read_spectrum('cal_data/255B/ant_255B.SW0.YF.on.skypath.2018-05-26_10-24-27.dat')Ê Ê Ê Ê P_cold Ê Ê    = read_spectrum('cal_data/255B/ant_255B.SW0.YF.off.skypath.2018-05-26_10-23-32.dat')Ê Ê Ê Ê # Load noise diode states - select hot and cold from one of many configurations.Ê Ê Ê Ê P_fe_coldÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.TERM.coldpath.2018-05-26_09-55-20.dat')Ê Ê Ê Ê P_fe_hot Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.TERM.hotpath.2018-05-26_09-55-20.dat')        ###############################        # Load de-embedded LNA S11 figures        s2p_lnaÊ = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Ês11_col=254a_col)ÊÊ Ê   Ê Ê  # Read balun S11 measurements        # HG NOTE:  Conversion from AF impedance figures.        s2p_ant = read_s2p_s11('cal_data/254A/xxxxx.s2p', s11_col=1)Ê Ê Ê # Now load uncalibrated spectra corresponding to reference sourcesÊ Ê Ê Ê P_2m_openÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.OPEN.skypath.2018-05-26_08-03-53.dat')Ê Ê Ê Ê P_2m_short Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.SHORT.skypath.2018-05-26_08-05-43.dat')Ê Ê Ê Ê P_2m_c47 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.47pf.skypath.2018-05-26_08-09-24.dat')Ê Ê Ê Ê P_2m_c66 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.66pf.skypath.2018-05-26_08-10-21.dat')Ê Ê Ê Ê P_0p9m_openÊ = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.OPEN.skypath.2018-05-26_08-13-36.dat')Ê Ê Ê Ê P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.SHORT.skypath.2018-05-26_08-16-19.dat')Ê Ê Ê Ê P_0p9m_c47 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.47pf.skypath.2018-05-26_08-19-32.dat')Ê Ê Ê Ê P_0p9m_c66 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.66pf.skypath.2018-05-26_08-20-57.dat')Ê Ê Ê Ê # Load / compute spectra and temperature for hot and ambient reference sources        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.   Ê Ê ÊT_cold, T_hot = generate_T_amb_hot(len(f_mhz))Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê                 ÊÊ Ê Ê Ê P_hotÊ Ê Ê    = read_spectrum('cal_data/254A/ant_254A.SW0.yf346-7.on.skypath.2018-05-26_08-24-42.dat')Ê Ê Ê Ê P_cold Ê Ê    = read_spectrum('cal_data/254A/ant_254A.SW0.yf346-7.off.skypath.2018-05-26_08-23-46.dat')Ê Ê Ê Ê # Load noise diode states - select hot and cold from one of many configurations.Ê Ê Ê Ê P_fe_coldÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.TERM.coldpath.2018-05-26_08-07-08.dat')Ê Ê Ê Ê P_fe_hot Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.TERM.hotpath.2018-05-26_08-07-08.dat')        ###############################        # Load de-embedded LNA S11 figures        s2p_lnaÊ = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Ês11_col=254b_col)ÊÊ Ê   Ê Ê  # Read balun S11 measurements        # HG NOTE:  Conversion from AF impedance figures.        s2p_ant = read_s2p_s11('cal_data/254B/xxxxx.s2p', s11_col=1)Ê Ê   Ê # Now load uncalibrated spectra corresponding to reference sourcesÊ Ê Ê Ê P_2m_openÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.OPEN.skypath.2018-05-24_15-36-57.dat')Ê Ê Ê Ê P_2m_short Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.SHORT.skypath.2018-05-24_16-00-32.dat')Ê Ê Ê Ê P_2m_c47 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.47pf.skypath.2018-05-24_16-05-06.dat')Ê Ê Ê Ê P_2m_c66 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.66pf.skypath.2018-05-24_16-06-28.dat')Ê Ê Ê Ê P_0p9m_openÊ = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.OPEN.skypath.2018-05-24_16-12-55.dat')Ê Ê Ê Ê P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.SHORT.skypath.2018-05-24_16-15-15.dat')Ê Ê Ê Ê P_0p9m_c47 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.47pf.skypath.2018-05-24_16-18-57.dat')Ê Ê Ê Ê P_0p9m_c66 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.66pf.skypath.2018-05-24_16-19-56.dat')Ê Ê Ê Ê # Load / compute spectra and temperature for hot and ambient reference sources        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.   Ê Ê ÊT_cold, T_hot = generate_T_amb_hot(len(f_mhz))Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê                 ÊÊ Ê Ê Ê P_hotÊ Ê Ê    = read_spectrum('cal_data/254B/ant_254B.SW0.yf346-7.on.skypath.2018-05-24_16-23-51.dat')Ê Ê Ê Ê P_cold Ê Ê    = read_spectrum('cal_data/254B/ant_254B.SW0.yf346-7.off.skypath.2018-05-24_16-22-54.dat')Ê Ê Ê Ê # Load noise diode states - select hot and cold from one of many configurations.Ê Ê Ê Ê P_fe_coldÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.TERM.coldpath.2018-05-24_16-02-49.dat')Ê Ê Ê Ê P_fe_hot Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.TERM.hotpath.2018-05-24_16-02-49.dat')        ###############################        # Load de-embedded LNA S11 figures        s2p_lnaÊ = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Ês11_col=252a_col)ÊÊ Ê   Ê Ê  # Read balun S11 measurements        # HG NOTE:  Conversion from AF impedance figures.        s2p_ant = read_s2p_s11('cal_data/252A/xxxxx.s2p', s11_col=1)Ê Ê Ê # Now load uncalibrated spectra corresponding to reference sourcesÊ Ê Ê Ê P_2m_openÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.OPEN.skypath.2018-05-24_18-17-45.datÔ)Ê Ê Ê Ê P_2m_short Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.SHORT.skypath.2018-05-24_18-16-24.dat')Ê Ê Ê Ê P_2m_c47 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.47pf.skypath.2018-05-24_18-21-27.dat')Ê Ê Ê Ê P_2m_c66 Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.66pf.skypath.2018-05-24_18-22-50.dat')Ê Ê Ê Ê P_0p9m_openÊ = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.OPEN.skypath.2018-05-24_18-32-08.dat')Ê Ê Ê Ê P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.SHORT.skypath.2018-05-24_18-30-16.dat')Ê Ê Ê Ê P_0p9m_c47 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.47pf.skypath.2018-05-24_18-35-22.dat')Ê Ê Ê Ê P_0p9m_c66 Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.66pf.skypath.2018-05-24_18-36-46.dat')Ê Ê Ê Ê # Load / compute spectra and temperature for hot and ambient reference sources        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.   Ê Ê ÊT_cold, T_hot = generate_T_amb_hot(len(f_mhz))Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê Ê                 ÊÊ Ê Ê Ê P_hotÊ Ê Ê    = read_spectrum('cal_data/252A/ant_252A.SW0.yf346-7.on.skypath.2018-05-24_18-40-30.dat')Ê Ê Ê Ê P_cold Ê Ê    = read_spectrum('cal_data/252A/ant_252A.SW0.yf346-7.off.skypath.2018-05-24_18-39-07.dat')Ê Ê Ê Ê # Load noise diode states - select hot and cold from one of many configurations.Ê Ê Ê Ê P_fe_coldÊ Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.TERM.coldpath.2018-05-24_18-19-35.dat')Ê Ê Ê Ê P_fe_hot Ê Ê = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.TERM.hotpath.2018-05-24_18-19-35.dat')
+ï»¿## Code for signal paths 252A, 254A, 254B, 255A, 255B
+
+Â  Â  if testpoint == 'SW0':
+Â  Â  Â  Â 
+        # Load lab measurements of open, short, termination and capacitor S11
+Â  Â  Â  Â  # LJG NOTE: Need to examine origin of cable S11s and to update w/ cascaded btw-series adapters in the case of capacitors.
+
+Â  Â  Â  Â  c47 = read_anritsu_s11('cal_data/c47pF_0702.csv')
+Â  Â  Â  Â  c66 = read_anritsu_s11('cal_data/c66pF_0702.csv')
+Â  Â  Â  Â  o Â  = read_anritsu_s11('cal_data/open0702.csv')
+Â  Â  Â  Â  s Â  = read_anritsu_s11('cal_data/short0702.csv')
+Â  Â  Â  Â  l Â  = read_anritsu_s11('cal_data/R50p9_0702.csv')
+
+
+Â  Â  Â  Â  # Load 0.9 and 2m cable S-params
+
+Â  Â  Â  Â  cable_0p9m = read_cable_sparams('leda_analysis_2016/cable.cal.18may/leda.0.9m.cable.and.MS147.18may31.18aug16.s2p.csv')
+Â  Â  Â  Â  cable_2m Â  = read_cable_sparams('leda_analysis_2016/cable.cal.18may/leda.2.0m.cable.and.MS147.18may31.18aug16.s2p.csv')
+Â  Â  Â  Â  
+
+        # Load Keysight 346B noise source S11 values
+
+Â  Â  Â  Â  s2p_hotÂ  = read_s2p_s11('leda_analysis_2016/nparams-2018-08-03/cal_data/346-7bw3.on.s11.s2p')
+Â  Â  Â  Â  s2p_cold = read_s2p_s11('leda_analysis_2016/nparams-2018-08-03/cal_data/346-7bw3.off.s11.s2p')
+
+Â  Â  Â  Â  # LNA S11 values are in specific columns in the file 
+        # leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt
+   
+        252a_col = 1
+        252b_col = 3
+        254a_col = 5
+        254b_col = 7
+        255a_col = 9
+        255b_col = 11
+        256b_col = 13
+
+Â  
+
+        # Load de-embedded LNA S11 figures
+        s2p_lnaÂ  = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Â s11_col=255a_col)
+
+Â Â  
+    Â  Â  # Read balun S11 measurements
+        # HG NOTE:  Conversion from AF impedance figures.
+        s2p_ant = read_s2p_s11('cal_data/255A/xxxxx.s2p', s11_col=1)
+
+
+Â  Â  Â  Â  # Now load uncalibrated spectra corresponding to reference sources
+Â  Â  Â  Â  P_2m_openÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.OPEN.skypath.2018-05-26_08-03-53.dat')
+Â  Â  Â  Â  P_2m_short Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.SHORT.skypath.2018-05-26_08-05-43.dat')
+Â  Â  Â  Â  P_2m_c47 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.47pf.skypath.2018-05-26_08-09-24.dat')
+Â  Â  Â  Â  P_2m_c66 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.66pf.skypath.2018-05-26_08-10-21.dat')
+Â  Â  Â  Â  P_0p9m_openÂ  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.OPEN.skypath.2018-05-26_08-13-36.dat')
+Â  Â  Â  Â  P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.SHORT.skypath.2018-05-26_08-16-19.dat')
+Â  Â  Â  Â  P_0p9m_c47 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.47pf.skypath.2018-05-26_08-19-32.dat')
+Â  Â  Â  Â  P_0p9m_c66 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.66pf.skypath.2018-05-26_08-20-57.dat')
+
+Â  Â  Â  Â  # Load / compute spectra and temperature for hot and ambient reference sources
+        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.
+   Â  Â  Â T_cold, T_hot = generate_T_amb_hot(len(f_mhz))Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â                  Â 
+Â  Â  Â  Â  P_hotÂ  Â  Â     = read_spectrum('cal_data/255A/ant_255A.SW0.yf346-7.on.skypath.2018-05-26_08-24-42.dat')
+Â  Â  Â  Â  P_cold Â  Â     = read_spectrum('cal_data/255A/ant_255A.SW0.yf346-7.off.skypath.2018-05-26_08-23-46.dat')
+
+
+Â  Â  Â  Â  # Load noise diode states - select hot and cold from one of many configurations.
+Â  Â  Â  Â  P_fe_coldÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.TERM.coldpath.2018-05-26_08-07-08.dat')
+Â  Â  Â  Â  P_fe_hot Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.TERM.hotpath.2018-05-26_08-07-08.dat')
+
+
+        ###############################
+
+        # Load de-embedded LNA S11 figures
+        s2p_lnaÂ  = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Â s11_col=255b_col)
+Â Â  Â 
+   Â  Â   # Read balun S11 measurements
+        # HG NOTE:  Conversion from AF impedance figures.
+        s2p_ant = read_s2p_s11('cal_data/255B/xxxxx.s2p', s11_col=1)
+
+
+
+Â  Â  Â  # Now load uncalibrated spectra corresponding to reference sources
+Â  Â  Â  Â  P_2m_openÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.OPEN.skypath.2018-05-26_09-52-02.dat')
+Â  Â  Â  Â  P_2m_short Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.SHORT.skypath.2018-05-26_09-53-55.dat')
+        P_2m_c47 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.47pf.skypath.2018-05-26_09-57-42.dat')
+Â  Â  Â  Â  P_2m_c66 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.66pf.skypath.2018-05-26_09-58-38.dat')
+Â  Â  Â  Â  P_0p9m_openÂ  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.OPEN.skypath.2018-05-26_10-02-47.dat')
+Â  Â  Â  Â  P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.SHORT.skypath.2018-05-26_10-05-07.dat')
+Â  Â  Â  Â  P_0p9m_term  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.TERM.skypath.2018-05-26_10-07-00.datâ€™)
+        P_0p9m_c47 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.47pf.skypath.2018-05-26_10-08-52.dat')
+Â  Â  Â  Â  P_0p9m_c66 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.66pf.skypath.2018-05-26_10-10-47.dat')
+
+Â  Â  Â  Â  # Load / compute spectra and temperature for hot and ambient reference sources
+        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.
+   Â  Â  Â T_cold, T_hot = generate_T_amb_hot(len(f_mhz))Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â                  Â 
+Â  Â  Â  Â  P_hotÂ  Â  Â     = read_spectrum('cal_data/255B/ant_255B.SW0.YF.on.skypath.2018-05-26_10-24-27.dat')
+Â  Â  Â  Â  P_cold Â  Â     = read_spectrum('cal_data/255B/ant_255B.SW0.YF.off.skypath.2018-05-26_10-23-32.dat')
+
+
+Â  Â  Â  Â  # Load noise diode states - select hot and cold from one of many configurations.
+Â  Â  Â  Â  P_fe_coldÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.TERM.coldpath.2018-05-26_09-55-20.dat')
+Â  Â  Â  Â  P_fe_hot Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.TERM.hotpath.2018-05-26_09-55-20.dat')
+
+
+
+
+        ###############################
+
+        # Load de-embedded LNA S11 figures
+        s2p_lnaÂ  = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Â s11_col=254a_col)
+Â Â  Â 
+   Â  Â   # Read balun S11 measurements
+        # HG NOTE:  Conversion from AF impedance figures.
+        s2p_ant = read_s2p_s11('cal_data/254A/xxxxx.s2p', s11_col=1)
+
+
+Â  Â  Â  # Now load uncalibrated spectra corresponding to reference sources
+Â  Â  Â  Â  P_2m_openÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.OPEN.skypath.2018-05-24_13-59-10.dat')
+Â  Â  Â  Â  P_2m_short Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.SHORT.skypath.2018-05-24_13-57-22.dat')
+Â  Â  Â  Â  P_2m_load  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.49.99o.skypath.2018-05-24_14-03-50.dat')
+Â  Â  Â  Â  P_2m_c47 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.47pf.skypath.2018-05-24_14-01-29.dat')
+Â  Â  Â  Â  P_2m_c66 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.66pf.skypath.2018-05-24_14-02-54.dat')
+Â  Â  Â  Â  P_0p9m_openÂ  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.OPEN.skypath.2018-05-24_14-09-51.dat')
+Â  Â  Â  Â  P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.SHORT.skypath.2018-05-24_14-11-13.dat')
+Â  Â  Â  Â  P_0p9m_load  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.49.99o.skypath.2018-05-24_14-15-20.dat')
+Â  Â  Â  Â  P_0p9m_c47 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.47pf.skypath.2018-05-24_14-13-04.dat')
+Â  Â  Â  Â  P_0p9m_c66 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.66pf.skypath.2018-05-24_14-14-26.dat')
+
+Â  Â  Â  Â  # Load / compute spectra and temperature for hot and ambient reference sources
+        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.
+   Â  Â  Â T_cold, T_hot = generate_T_amb_hot(len(f_mhz))Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â                  Â 
+Â  Â  Â  Â  P_hotÂ  Â  Â     = read_spectrum('cal_data/254A/ant_254A.SW0.yf346-7.on.skypath.2018-05-24_14-22-41.dat')
+Â  Â  Â  Â  P_cold Â  Â     = read_spectrum('cal_data/254A/ant_254A.SW0.yf346-7.off.skypath.2018-05-24_14-21-18.dat')
+
+
+Â  Â  Â  Â  # Load noise diode states - select hot and cold from one of many configurations.
+Â  Â  Â  Â  P_fe_coldÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.49.99o.coldpath.2018-05-24_14-03-50.dat')
+Â  Â  Â  Â  P_fe_hot Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.49.99o.hotpath.2018-05-24_14-03-50.dat')
+
+
+
+
+        ###############################
+
+        # Load de-embedded LNA S11 figures
+        s2p_lnaÂ  = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Â s11_col=254b_col)
+Â Â  Â 
+   Â  Â   # Read balun S11 measurements
+        # HG NOTE:  Conversion from AF impedance figures.
+        s2p_ant = read_s2p_s11('cal_data/254B/xxxxx.s2p', s11_col=1)
+
+
+
+Â  Â    Â  # Now load uncalibrated spectra corresponding to reference sources
+Â  Â  Â  Â  P_2m_openÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.OPEN.skypath.2018-05-24_15-36-57.dat')
+Â  Â  Â  Â  P_2m_short Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.SHORT.skypath.2018-05-24_16-00-32.dat')
+Â  Â  Â  Â  P_2m_c47 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.47pf.skypath.2018-05-24_16-05-06.dat')
+Â  Â  Â  Â  P_2m_c66 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.66pf.skypath.2018-05-24_16-06-28.dat')
+Â  Â  Â  Â  P_0p9m_openÂ  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.OPEN.skypath.2018-05-24_16-12-55.dat')
+Â  Â  Â  Â  P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.SHORT.skypath.2018-05-24_16-15-15.dat')
+Â  Â  Â  Â  P_0p9m_c47 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.47pf.skypath.2018-05-24_16-18-57.dat')
+Â  Â  Â  Â  P_0p9m_c66 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.66pf.skypath.2018-05-24_16-19-56.dat')
+
+Â  Â  Â  Â  # Load / compute spectra and temperature for hot and ambient reference sources
+        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.
+   Â  Â  Â T_cold, T_hot = generate_T_amb_hot(len(f_mhz))Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â                  Â 
+Â  Â  Â  Â  P_hotÂ  Â  Â     = read_spectrum('cal_data/254B/ant_254B.SW0.yf346-7.on.skypath.2018-05-24_16-23-51.dat')
+Â  Â  Â  Â  P_cold Â  Â     = read_spectrum('cal_data/254B/ant_254B.SW0.yf346-7.off.skypath.2018-05-24_16-22-54.dat')
+
+
+Â  Â  Â  Â  # Load noise diode states - select hot and cold from one of many configurations.
+Â  Â  Â  Â  P_fe_coldÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.TERM.coldpath.2018-05-24_16-02-49.dat')
+Â  Â  Â  Â  P_fe_hot Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.TERM.hotpath.2018-05-24_16-02-49.dat')
+
+
+
+
+        ###############################
+
+        # Load de-embedded LNA S11 figures
+        s2p_lnaÂ  = read_s2p_s11('leda_analysis_2016/lna.s11.18may/leda.lna.s11.cable.de-embedded.18aug09.txt', Â s11_col=252a_col)
+Â Â  Â 
+   Â  Â   # Read balun S11 measurements
+        # HG NOTE:  Conversion from AF impedance figures.
+        s2p_ant = read_s2p_s11('cal_data/252A/xxxxx.s2p', s11_col=1)
+
+
+
+Â  Â  Â  # Now load uncalibrated spectra corresponding to reference sources
+Â  Â  Â  Â  P_2m_openÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.OPEN.skypath.2018-05-24_18-17-45.datâ€˜)
+Â  Â  Â  Â  P_2m_short Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.SHORT.skypath.2018-05-24_18-16-24.dat')
+Â  Â  Â  Â  P_2m_c47 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.47pf.skypath.2018-05-24_18-21-27.dat')
+Â  Â  Â  Â  P_2m_c66 Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.66pf.skypath.2018-05-24_18-22-50.dat')
+Â  Â  Â  Â  P_0p9m_openÂ  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.OPEN.skypath.2018-05-24_18-32-08.dat')
+Â  Â  Â  Â  P_0p9m_short = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.SHORT.skypath.2018-05-24_18-30-16.dat')
+Â  Â  Â  Â  P_0p9m_c47 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.47pf.skypath.2018-05-24_18-35-22.dat')
+Â  Â  Â  Â  P_0p9m_c66 Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.66pf.skypath.2018-05-24_18-36-46.dat')
+
+Â  Â  Â  Â  # Load / compute spectra and temperature for hot and ambient reference sources
+        # LJG NOTE:  Need to refine / correct use of ambient temperatures cs IEEE reference temperature of 290K.
+   Â  Â  Â T_cold, T_hot = generate_T_amb_hot(len(f_mhz))Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â                  Â 
+Â  Â  Â  Â  P_hotÂ  Â  Â     = read_spectrum('cal_data/252A/ant_252A.SW0.yf346-7.on.skypath.2018-05-24_18-40-30.dat')
+Â  Â  Â  Â  P_cold Â  Â     = read_spectrum('cal_data/252A/ant_252A.SW0.yf346-7.off.skypath.2018-05-24_18-39-07.dat')
+
+
+Â  Â  Â  Â  # Load noise diode states - select hot and cold from one of many configurations.
+Â  Â  Â  Â  P_fe_coldÂ  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.TERM.coldpath.2018-05-24_18-19-35.dat')
+Â  Â  Â  Â  P_fe_hot Â  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.TERM.hotpath.2018-05-24_18-19-35.dat')
+
+
+
+
+
+
+
+
+255B
+Â  Â  Â  Â  P_2m_load  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.2p0m.TERM.skypath.2018-05-26_09-55-20.datâ€™)
+        P_0p9_load  Â = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255B/ant_255B.SW0.0p9m.TERM.skypath.2018-05-26_10-07-00.datâ€™)
+
+255A
+
+Â  Â  Â  Â  P_2m_load  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.2p0m.TERM.skypath.2018-05-26_08-07-08.datâ€™)
+        P_0p9_load  Â = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/255A/ant_255A.SW0.0p9m.TERM.skypath.2018-05-26_08-17-42.datâ€™)
+
+254B
+
+Â  Â  Â  Â  P_2m_load  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.2p0m.TERM.skypath.2018-05-24_16-02-49.datâ€™)
+        P_0p9_load  Â = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254B/ant_254B.SW0.0p9m.TERM.skypath.2018-05-24_16-17-03.datâ€™)
+
+
+254A
+
+Â  Â  Â  Â  P_2m_load  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.2p0m.49.99o.skypath.2018-05-24_14-03-50.datâ€™)
+        P_0p9_load  Â = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/254A/ant_254A.SW0.0p9m.49.99o.skypath.2018-05-24_14-15-20.dat')
+
+
+252A
+
+Â  Â  Â  Â  P_2m_load  Â  = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.2p0m.TERM.skypath.2018-05-24_18-19-35.datâ€™)
+        P_0p9_load  Â = read_spectrum('leda_analysis_2016/npcal/npcal.data.collected/252A/ant_252A.SW0.0p9m.TERM.skypath.2018-05-24_18-33-32.datâ€™)
+
