@@ -113,10 +113,10 @@ def compute_noisewave(ant_id='a252y'):
     G = compute_G(rl)
     
     noisewave = hkl.load("cal_data/noisewave.hkl")
-    T0 = resample(noisewave["f"], noisewave[ant_id]['T0'], vna_cal["f"])
-    Tu = resample(noisewave["f"], noisewave[ant_id]['Tu'], vna_cal["f"])
-    Tc = resample(noisewave["f"], noisewave[ant_id]['Tc'], vna_cal["f"])
-    Ts = resample(noisewave["f"], noisewave[ant_id]['Ts'], vna_cal["f"])
+    T0 = noisewave[ant_id]['T0']
+    Tu = noisewave[ant_id]['Tu']
+    Tc = noisewave[ant_id]['Tc']
+    Ts = noisewave[ant_id]['Ts']
 
     RA  = np.abs(ra)
     RA2 = RA**2 
@@ -278,12 +278,12 @@ def apply_calibration(h5, apply_3ss=True, apply_vna=True):
         a255y = h5.root.data.cols.ant255_y[:]
     if apply_vna:
         print("Applying VNA calibration")
-        a252x = apply_vna_cal_new(a252x, 'a252x', f_leda)
-        a254x = apply_vna_cal_new(a254x, 'a254x', f_leda)
-        a255x = apply_vna_cal_new(a255x, 'a255x', f_leda)
-        a252y = apply_vna_cal_new(a252y, 'a252y', f_leda)
-        a254y = apply_vna_cal_new(a254y, 'a254y', f_leda)
-        a255y = apply_vna_cal_new(a255y, 'a255y', f_leda)
+        a252x = apply_vna_cal(a252x, 'a252x')
+        a254x = apply_vna_cal(a254x, 'a254x')
+        a255x = apply_vna_cal(a255x, 'a255x')
+        a252y = apply_vna_cal(a252y, 'a252y')
+        a254y = apply_vna_cal(a254y, 'a254y')
+        a255y = apply_vna_cal(a255y, 'a255y')
     
     print("Sorting by LST")
     sort_idx = lst_stamps.argsort()
