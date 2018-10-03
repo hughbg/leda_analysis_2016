@@ -33,11 +33,12 @@ def rms_filter(data):
     return np.std(data[np.logical_not(np.isnan(data))])  
 
 
-def quicklook(filename, ant, flag, noise, no_show, all_lsts):
+def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
     global fits_header
     
     h5 = tb.open_file(filename)
-    T_ant = apply_calibration(h5)
+    if new_cal: T_ant = apply_new_calibration(h5)
+    else: T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
     lst_stamps = T_ant['lst']
     utc_stamps = T_ant['utc']
@@ -71,13 +72,13 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts):
     fits_header = fits_header.replace("XXXX", ( "%04d" % T_ant[ant].shape[1] ))
     fits_header = fits_header.replace("YYYY", ( "%04d" % len(lst_stamps) ))
 
-    lst_diff = str((lst_stamps[0]-lst_stamps[-1])/(len(lst_stamps)-1))[:10]
-    freq_diff = str((f_leda[-1]-f_leda[0])/(len(f_leda)-1))[:10]
+    lst_diff = (str((lst_stamps[0]-lst_stamps[-1])/(len(lst_stamps)-1))+"0000000000")[:10]
+    freq_diff = (str((f_leda[-1]-f_leda[0])/(len(f_leda)-1))+"0000000000")[:10]
     fits_header = fits_header.replace("LLLLLLLLLL", lst_diff)
     fits_header = fits_header.replace("FFFFFFFFFF", freq_diff)
 
-    lst_start = str(lst_stamps[-1])[:6]			# start and the end for FITs in our orientation
-    freq_start = str(f_leda[0])[:6]
+    lst_start = (str(lst_stamps[-1])+"000000")[:6]			# start and the end for FITs in our orientation
+    freq_start = (str(f_leda[0])+"000000")[:6]
     fits_header = fits_header.replace("STARTL", lst_start)
     fits_header = fits_header.replace("STARTF", freq_start)
     
@@ -147,6 +148,9 @@ if __name__ == "__main__":
                  help='Use a median filter in the sum threhold flagging. Default: False.')
     o.add_option('--rms', dest='noise', action='store_true', default=False,
                  help='Create a FITs file containing the RMS over the data (after flattening data). The value of a pixel is the RMS at that point. Default: False.')   
+    o.add_option('--new_cal', dest='new_cal', action='store_true', default=False,
+                 help='Use the 2018 calibration files and method. Default: False.')   
+
     o.add_option('--no_show', dest='no_show', action='store_true', default=False,
                  help="Don't display the plot on screen using DS9. A FITS file is always created with the same name as the h5 file, but with antenna appended. This can be loaded into another FITS viewer if you don't have DS9. Default: False.")
 
@@ -158,6 +162,11 @@ if __name__ == "__main__":
     except:
         o.print_help()
         exit()
+
+    if opts.new_cal and ant == "252B":
+      print "No 2018 calibration data for 252B"
+      exit(1)
+      
         
     params.median = opts.median
-    quicklook(filename, ant, opts.flag,opts.noise, opts.no_show, opts.all_lsts)
+    quicklook(filename, ant, opts.flag,opts.noise, opts.no_show, opts.all_lsts, opts.new_cal)

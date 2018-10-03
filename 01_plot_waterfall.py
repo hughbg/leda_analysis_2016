@@ -35,10 +35,11 @@ gal_center._dec = '-29 00 28.1'
 gal_center.name = "Galactic Center"
 
 
-def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, sky=False, lfsm=False, emp=False):
+def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new_cal, sky=False, lfsm=False, emp=False):
     h5 = tb.open_file(filename)
-    
-    T_ant = apply_calibration(h5)
+ 
+    if new_cal: T_ant = apply_new_calibration(h5)
+    else: T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
     
     ant_ids = ['252', '254', '255']
@@ -282,6 +283,8 @@ if __name__ == "__main__":
                  help='Apply flagging. Default: False')
     o.add_option('--merge', dest='merge', action='store_true', default=False,
                  help='Merge all flags. Default: False')
+    o.add_option('--new_cal', dest='new_cal', action='store_true', default=False,
+                 help='Use the 2018 calibration files and method. Default: False.')   
     o.add_option('--all_lsts', dest='all_lsts', action='store_true', default=False,
                  help='Include all LSTs, not just when Galaxy and Sun are down. A day/night stripe is printed on the right. Default: False.')
     o.add_option('--median', dest='median', action='store_true', default=False,
@@ -302,5 +305,5 @@ if __name__ == "__main__":
         filename = args[0]
         
     params.median = opts.median
-    quicklook(filename, opts.save, opts.dump, opts.flag, opts.merge, opts.flatten, opts.no_show, opts.all_lsts, 
+    quicklook(filename, opts.save, opts.dump, opts.flag, opts.merge, opts.flatten, opts.no_show, opts.all_lsts, opts.new_cal,
               sky=opts.sky, lfsm=opts.lfsm, emp=opts.emp)
