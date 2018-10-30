@@ -186,7 +186,7 @@ def main(args):
     else:
         smap = skymap.SkyMapLFSM(freqMHz=config['freq']/1e6)
         if config['verbose']:
-            print "Read in LFSM map at %.2f MHz of %d x %d pixels; min=%f, max=%f" % (config['freq']/1e6, smap.numPixelsX, smap.numPixelsY, smap._power.min(), smap._power.max())
+            print "Read in LFSM map at %.2f MHz of %s pixels; min=%f, max=%f" % (config['freq']/1e6, len(smap.ra), smap._power.min(), smap._power.max())
     
     # Get the emperical model of the beam and compute it for the correct frequencies
     beamDict = numpy.load(os.path.join(dataPath, 'lwa1-dipole-emp.npz'))
@@ -276,14 +276,9 @@ def main(args):
         lst = astro.get_local_sidereal_time(sta.long*180.0/math.pi, t)
         lstList.append(lst)
         
-        if config['GSM']:
-            cdec = numpy.ones_like(pmap.visibleDec)
-        else:
-            cdec = numpy.cos(pmap.visibleDec * smap.degToRad)
-                
         # Convolution of user antenna pattern with visible skymap
         gain = BeamPattern(pmap.visibleAz, pmap.visibleAlt)
-        powerAnt = (pmap.visiblePower * gain * cdec).sum() / (gain * cdec).sum()
+        powerAnt = (pmap.visiblePower * gain).sum() / gain.sum()
         powListAnt.append(powerAnt)
 
         if config['verbose']:
