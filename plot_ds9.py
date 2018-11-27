@@ -14,6 +14,8 @@ import scipy.stats
 import scipy.ndimage.filters
 from leda_cal.useful import statistics
 from leda_cal.params import params
+from leda_cal import lst_timing
+
 
 fits_header = "SIMPLE  =                    T / file does conform to FITS standard             BITPIX  =                  -32 / number of bits per data pixel                  NAXIS   =                    2 / number of data axes                            NAXIS1  =                 XXXX / length of data axis 1                          NAXIS2  =                 YYYY / length of data axis 2                          EXTEND  =                    T / FITS dataset may contain extensions            COMMENT   FITS (Flexible Image Transport System) format is defined in 'AstronomyCOMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H CTYPE2  = 'LST     '                                                            CTYPE1  = 'FREQ    '                                                            CRPIX1  =                   1.                                                  CRPIX1  =                   1.                                                  CRVAL2  =               STARTL / LST                                            CRVAL1  =               STARTF / Frequency                                      CDELT2  =           LLLLLLLLLL /                                                CDELT1  =           FFFFFFFFFF /                                                END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           "
 
@@ -42,30 +44,27 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
     f_leda = T_ant['f']
     lst_stamps = T_ant['lst']
     utc_stamps = T_ant['utc']
+
+
     
     # Report discontinuities in time
     for i in range(1,len(lst_stamps)):
         if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
             print "Discontinuity at LST", lst_stamps[i], (lst_stamps[i]-lst_stamps[i-1])*60*60, "seconds"
             
-    # Work out altitude of Gal center and Sun. Use whichever is highest
-    # and put that in the padding, which is the stripe.
-    unusable_lsts = []
-    for i, d in enumerate(utc_stamps):
-        ovro.date = d
-        sun.compute(ovro)
-        gal_center.compute(ovro)
-        if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
-            unusable_lsts.append(i)
-            
-    # Delete sun up LSTS
+   # Delete sun up LSTS
     if not all_lsts:
-        print "Cutting out Sun/Galaxy up. LSTS in DS9 may be WRONG!!!!!!"
-        lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
-        utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
-        print len(lst_stamps), "usable LSTs"
+       time_info = lst_timing.LST_Timing(lst_stamps, utc_stamps)
+       border_bottom, night_bottom, night_top, border_top = time_info.calc_night()
+       if not border_top:
+	 raise RuntimeError("No LSTs available at night time (use --all_lsts to see all)")
+       print "Cutting out Sun/Galaxy up. LSTS in DS9 may be WRONG!!!!!!"
+       lst_stamps = lst_stamps[night_bottom:night_top]
+       utc_stamps = lst_stamps[night_bottom:night_top]
+       print len(lst_stamps), "usable LSTs"
     else:
         print "Using all LSTs"
+
     if len(lst_stamps) == 0:
         raise RuntimeError("There is no data to display (number of LSTs is 0)")
         
@@ -84,18 +83,25 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
     
     if flag:
         print "Flagging"
-        data = rfi_flag(T_ant[ant], freqs=f_leda)
+        if not all_lsts:
+	  data = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)[0]
+	  data = data[night_bottom-border_bottom:night_top-border_bottom]	# Remove border
+          total = data.shape[0]*data.shape[1]
+          num_in = np.ma.MaskedArray.count(data)
+          print ant, ( "%.1f%%" % (100*float(total-num_in)/total) ), "flagged.", "Count:", total-num_in
+
+	else:
+          data, biggest_dtv_gap = rfi_flag(T_ant[ant], freqs=f_leda)
+	  print ant, "biggest DTV gap", lst_stamps[biggest_dtv_gap[1]], "-", lst_stamps[biggest_dtv_gap[0]]
+
     else:
-        data = T_ant[ant]
-        
-    if not all_lsts:  
-        if flag:
-            mask = np.delete(data.mask, unusable_lsts, axis=0)
-        data = np.delete(data, unusable_lsts, axis=0)
-        if flag:
-            data.mask = mask
+        if not all_lsts:
+          data = T_ant[ant][night_bottom:night_top]
+        else:
+          data = T_ant[ant]
+
             
-    statistics(data)
+    #statistics(data)
     
     # Test the image is oriented right
     #for i in range(200):

@@ -18,6 +18,7 @@ def report_hkl(data):
             pass
     print "\nStart time", data["utcs"][0]
     print "Options", data["options"]
+    print "Params", data["params"]
 
   # Sometimes you have to replace masked data with a value
   #plt.imshow(np.ma.filled(data["252A"], 0), clim=(1000,10000), aspect="auto")
@@ -30,6 +31,8 @@ if len(sys.argv) == 1:
 
 d = load_hkl(sys.argv[1])
 report_hkl(d)
+
+exit()
 
 # Example code how to attach uncertainties to a grid of data
 # Uncertainties are the RMS in each channel, which get put on the data on each channel

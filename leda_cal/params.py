@@ -31,8 +31,8 @@ class Params(object):
         """
 
         # For day/night selection
-        self.sun_down = -15		# In degrees. Below this they are down.
-        self.galaxy_down = -15
+        self.sun_down = -10		# In degrees. Below this they are down.
+        self.galaxy_down = -10
 
         # Select flagging algorithms
         self.do_sum_threshold = True
@@ -52,11 +52,15 @@ class Params(object):
         self.scales = [1, 2, 4, 8, 16, 32, 64]
         self.median = False			# Use scipy median filter instead of bottleneck mean for sum threshold
 
+	# Hard thresholds on what night is
+        self.night_start = 11
+	self.night_end = 12
+
         # Parameters for flagging using sigma clipping
         self.sc_bp_window_f = self.st_bp_window_f			# Sliding windows in time and frequency
         self.sc_bp_window_t = self.st_bp_window_t
         self.sc_passes = 3					# Number of passes to make through the clipper
-        self.sigma = 3						# Clip above/below this
+        self.sigma = 5						# Clip above/below this
 
         # Uncertainties. 
         self.un_bp_window_t = self.st_bp_window_t		# Window in time for flattening 1 channel to get RMS of channel
@@ -64,7 +68,7 @@ class Params(object):
         # DS9 clip. If flagging is not being done, it is necessary to clip the data for visualizing in DS9. 
         # There are very large peaks in the data, and if these are included in the FITS file, the huge range of the data
         # makes it difficult to see any detail outside of the peaks. The clip is a sigma clip _without_ flattening first.
-        self.ds9_clip = 4		
+        self.ds9_clip = 5		
 
 
         # Parameters for statistics gathering. Windows for statistics are independent of flagging windows because
@@ -88,5 +92,6 @@ class Params(object):
             output += "%s: %s\n" % (key, getattr(self, key, None))
         return output
 
-
+# This will be a global variable when imported into many modules.
+# There will be one instance that they all refer to.
 params = Params()

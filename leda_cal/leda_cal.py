@@ -30,11 +30,12 @@ def mag2(x):
     """
     return np.abs(x)**2
 
+# This will extend the old calibration data to 2400 if using the
+# old calibration on data after the channels were extended to 87MHz
 def extend(a, length):
     val = a[-1]
     num = length-len(a)
-    x = np.append(a, np.zeros(num))
-    x[-num:] = val
+    x = np.append(a, np.full(num, val))
     return x
 
 def interp_cplx(x_new, x_orig, d_orig):
@@ -277,18 +278,14 @@ def apply_new_calibration(h5):
 	exit(1)
 
     f_leda = h_254x['f_mhz']
-
     tstamps = h5.root.data.cols.timestamp[:]
 
-    if f_leda.shape[0] > h5.root.data.cols.ant252_x.shape[1]:
-      f_leda = f_leda[:-1]
-    elif f_leda.shape[0] < h5.root.data.cols.ant252_x.shape[1]:
-      last_index = len(f_leda)-1
-      last_val = f_leda[-1]
-      print "Extending data to match wider frequency range"
-      f_leda = extend(f_leda, h5.root.data.cols.ant252_x.shape[1])
-      for i in range(last_index+1, len(f_leda)):
-        f_leda[i] = last_val+(i-last_index)*.024
+    # Must extend the data if we are applying the new calibration (we are)
+    # to data collected before the data was extended to 2400 channels (cf. extend())
+    if h5.root.data.cols.ant252_x.shape[1] < f_leda.shape[0]:
+      print "Padding data with 0 to match wider frequency range"
+      pad = np.zeros((h5.root.data.cols.ant252_x.shape[0], f_leda.shape[0]-h5.root.data.cols.ant252_x.shape[1]))
+    else: pad = np.zeros((h5.root.data.cols.ant252_x.shape[0], 0))
  
     lst_stamps = np.zeros_like(tstamps)
     utc_stamps = []
@@ -299,12 +296,12 @@ def apply_new_calibration(h5):
         utc_stamps.append(utc)
 
     print "Applying cal files"
-    a252x = calibrate(h5.root.data.cols.ant252_x[:], h_252x)
+    a252x = calibrate(np.concatenate((h5.root.data.cols.ant252_x[:], pad), axis=1), h_252x); 
     a252y = np.zeros_like(a252x)
-    a254x = calibrate(h5.root.data.cols.ant254_x[:], h_254x)
-    a255x = calibrate(h5.root.data.cols.ant255_x[:], h_255x)
-    a254y = calibrate(h5.root.data.cols.ant254_y[:], h_254y)
-    a255y = calibrate(h5.root.data.cols.ant255_y[:], h_255y)
+    a254x = calibrate(np.concatenate((h5.root.data.cols.ant254_x[:], pad), axis=1), h_254x)
+    a255x = calibrate(np.concatenate((h5.root.data.cols.ant255_x[:], pad), axis=1), h_255x)
+    a254y = calibrate(np.concatenate((h5.root.data.cols.ant254_y[:], pad), axis=1), h_254y)
+    a255y = calibrate(np.concatenate((h5.root.data.cols.ant255_y[:], pad), axis=1), h_255y)
     
     print("Sorting by LST")
     sort_idx = lst_stamps.argsort()

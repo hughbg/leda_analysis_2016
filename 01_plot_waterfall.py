@@ -8,6 +8,7 @@ Plot data as calibrated waterfall plot.
 import os
 import hickle
 import numpy as np
+#from matplotlib import use as muse; muse('Agg')
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import seaborn as sns
@@ -20,19 +21,12 @@ from leda_cal.dpflgr import *
 from leda_cal.useful import add_uncertainties
 from leda_cal import robust
 from leda_cal.git import get_repo_fingerprint
-import leda_cal.params
+from leda_cal.params import params
+from leda_cal import lst_timing
 
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
 
-ovro_location = ('37.2397808', '-118.2816819', 1183.4839)
-ovro = ephem.Observer(); (ovro.lat, ovro.lon, ovro.elev) = ovro_location
-sun = ephem.Sun()
-
-gal_center = ephem.FixedBody()  
-gal_center._ra  =  '17 45 40.04'
-gal_center._dec = '-29 00 28.1'
-gal_center.name = "Galactic Center"
 
 
 def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new_cal, sky=False, lfsm=False, emp=False):
@@ -49,9 +43,11 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
     #plt.suptitle(h5.filename)
     
     lst_stamps = T_ant['lst']
+
+
     if len(lst_stamps) == 0:
         raise RuntimeError("No LSTs in file")
-        
+
     # Report discontinuities in time
     for i in range(1,len(lst_stamps)):
         if lst_stamps[i]-lst_stamps[i-1] > 1/60.0:	# 1 minute
@@ -65,38 +61,43 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
 
     # Work out altitude of Gal center and Sun. Use whichever is highest
     # and put that in the padding, which is the stripe.
-    unusable_lsts = []
     pad_length = 70
-    padding = np.zeros((len(lst_stamps), pad_length))
-    for i, d in enumerate(utc_stamps):
-        ovro.date = d
-        sun.compute(ovro)
-        gal_center.compute(ovro)
-        if sun.alt > params.sun_down*np.pi/180 or gal_center.alt > params.galaxy_down*np.pi/180:
-            padding[i, :] = 10000
-            unusable_lsts.append(i)
-        else: 
-            padding[i, :] = 1000
-            
-    # Delete sun up LSTS
+    padding = np.full((len(lst_stamps), pad_length), 10000)
+    timing = lst_timing.LST_Timing(lst_stamps, utc_stamps)	
+    border_bottom, night_bottom, night_top, border_top = timing.calc_night()
+    padding[night_bottom:night_top, :] = 1000
+
+    #for ant in ant_ids:
+    #  lst_stamps, T_ant[ant+"A"] = timing.align(T_ant[ant+"A"])
+    #  lst_stamps, T_ant[ant+"B"] = timing.align(T_ant[ant+"B"])
+
+    if night_bottom: print "Night", lst_stamps[night_bottom], "-", lst_stamps[night_top-1]
+    else: print "Night 0 - 0"
+
+    # Use night only
     if not all_lsts:
-        print "Cutting out times when sun/galaxy up"
-        padding = np.delete(padding, unusable_lsts, axis=0)
-        lst_stamps = np.delete(lst_stamps, unusable_lsts, axis=0)
-        utc_stamps = np.delete(utc_stamps, unusable_lsts, axis=0)
-        if len(lst_stamps) == 0:
-            raise RuntimeError("No LSTs available at night time (use --all_lsts to see all)")
-        ylims = ( lst_stamps[0], lst_stamps[-1] )
-        print len(lst_stamps), "usable LSTs"
+      if not border_top:
+        raise RuntimeError("No LSTs available at night time (use --all_lsts to see all)")
+      lst_stamps = lst_stamps[night_bottom:night_top]
+      utc_stamps = utc_stamps[night_bottom:night_top]
+      padding = padding[night_bottom:night_top]
+      ylims = ( lst_stamps[0], lst_stamps[-1] )
+      print len(lst_stamps), "usable LSTs"
     else:
-        print "Using all LSTs"
+      print "Using all LSTs"
+   
+
     if len(lst_stamps) == 0:
         raise RuntimeError("There are no data to display (number of LSTs is 0)")
         
     yloc = []
     ylabel = []
-    for i in range(0, len(lst_stamps), len(lst_stamps)/7):
+    try:
+      for i in range(0, len(lst_stamps), len(lst_stamps)/7):
         yloc.append(lst_stamps[i]), ylabel.append(("%.1f" % lst_stamps[i]))
+    except: 
+      yloc.append(lst_stamps[0]), ylabel.append(("%.1f" % lst_stamps[0]))
+      yloc.append(lst_stamps[-1]), ylabel.append(("%.1f" % lst_stamps[-1]))
     if all_lsts:
         new_x_high = xlims[1]+pad_length*(xlims[1]-xlims[0])/len(f_leda)
     else:
@@ -121,17 +122,19 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
         sx = smdl(pol='x')
         T_y_asm = sy.generate_tsky(lst_stamps, f_leda*1e6)
         T_x_asm = sx.generate_tsky(lst_stamps, f_leda*1e6)
-        
+
     if flag and merge:
         # If we are going to merge the flags across antennas, we need to flag them all now
         for p in (0, 1):
             for ii,key in enumerate(ant_ids):
                 ant = key+("B" if p else "A")
                 T_flagged = T_ant[ant]
-                if not all_lsts:
-                    T_flagged = np.delete(T_flagged, unusable_lsts, axis=0)
-                    
-                new_mask = rfi_flag(T_flagged, freqs=f_leda).mask
+                if not all_lsts: 
+		  new_mask = rfi_flag(T_flagged[border_bottom:border_top], freqs=f_leda)[0].mask	# Do flagging with a border around the data in time
+                  new_mask = new_mask[night_bottom-border_bottom:night_top-border_bottom]		# remove border
+		else:
+                  new_mask, biggest_dtv_gap = rfi_flag(T_flagged, freqs=f_leda).mask
+		  print ant, "Biggest DTV gap", lst_stamps[biggest_dtv_gap[1]], "-", lst_stamps[biggest_dtv_gap[0]], "waterfall"
                 try:
                     merged_mask |= new_mask
                 except NameError:
@@ -152,7 +155,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 
             T_flagged = T_ant[ant]
             if not all_lsts:
-                T_flagged = np.delete(T_flagged, unusable_lsts, axis=0)
+                T_flagged = T_flagged[night_bottom:night_top]
                 
             print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
             
@@ -163,7 +166,12 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 else:
                     ## Need to do it now - there's probably a way to deal with 
                     ## this all in one pass
-                    T_flagged = rfi_flag(T_flagged, freqs=f_leda)
+		    if not all_lsts:
+		      T_flagged = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)[0]
+		      T_flagged = T_flagged[night_bottom-border_bottom:night_top-border_bottom]	# Remove border
+		    else: 
+                      T_flagged, biggest_dtv_gap = rfi_flag(T_flagged, freqs=f_leda)
+		      print ant, "Biggest DTV gap", lst_stamps[biggest_dtv_gap[1]], "-", lst_stamps[biggest_dtv_gap[0]], "waterfall"
                 print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
                 
             try:
@@ -183,7 +191,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
             if flag:
                 total = T_flagged.shape[0]*T_flagged.shape[1]
                 num_in = np.ma.MaskedArray.count(T_flagged)
-                print ant, ( "%.1f%%" % (100*(total-num_in)/total) ), "flagged.", "Count:", total-num_in
+                print ant, ( "%.1f%%" % (100*float(total-num_in)/total) ), "flagged.", "Count:", total-num_in
                 
             # Add the stripe onto the right edge of the data and adjust the extent of the x-axis (frequency) to cover the stripe.
             if all_lsts:
@@ -243,7 +251,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
         #plt.tight_layout()
     
     plt.text(0.005, 0.005, get_repo_fingerprint(), transform=fig.transFigure, size=8)
-    
+
     if save:
         plt.savefig(os.path.basename(filename)[:-3]+".png")
     if not no_show:
@@ -254,6 +262,8 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
         dump_data["utcs"] = np.array([str(pytime) for pytime in utc_stamps])
         dump_data["frequencies"] = f_leda
         dump_data["options"] = "Flag="+str(flag) \
+			       + " Filename="+filename \
+			       + " New cal="+str(new_cal) \
                                + " Merge="+str(merge) \
                                + " Flatten="+str(flatten) \
                                + " All LSTSs="+str(all_lsts) \
@@ -261,6 +271,10 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                                + " Use LFSM="+str(lfsm) \
                                + " Apply empirical gain correction="+str(emp)
         dump_data["fingerprint"] = get_repo_fingerprint()
+        import json
+        def jdefault(o): return o.__dict__
+        dump_data["params"] = json.dumps(params, default=jdefault)
+
         hickle.dump(dump_data, os.path.basename(filename)[:-3]+".hkl")
 
 

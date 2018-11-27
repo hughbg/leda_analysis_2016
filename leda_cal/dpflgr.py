@@ -344,7 +344,8 @@ def do_dtv_flagging2(data, freqs):
     """
     
     mask = data.mask*1
-    
+    dtv_times = []
+ 
     for ledge in (54, 60, 66, 76, 82):
          uedge = ledge + 6
          band = np.where( (freqs>=ledge) & (freqs<=uedge) )[0]
@@ -365,14 +366,24 @@ def do_dtv_flagging2(data, freqs):
          st = np.std(pE)
          bad = np.where( np.abs(pT-pE) > 3*st )[0]
          for b in bad:
+	     dtv_times.append(b)
              mask[b,band] |= True
              if b > 1:
                  mask[b-1,band] |= True
              if b < data.shape[0]-2:
                  mask[b+1,band] |= True
                  
+    dtv_times = sorted(dtv_times)
+    gap = -1
+    where_gap = (-1, -1)
+    for i in range(1, len(dtv_times)):
+      this_gap = dtv_times[i]-dtv_times[i-1]
+      if this_gap > gap:
+        gap = this_gap
+        where_gap = (dtv_times[i], dtv_times[i-1])
+
     data.mask = mask*1
-    return data.mask
+    return data.mask, where_gap
 
 
 @check_mask
@@ -434,11 +445,11 @@ def rfi_flag(data, freqs=None):
             bpass = estimate_bandpass(data)
             to_flag = data / bpass
             
-        to_flag.mask = do_dtv_flagging2(to_flag, freqs) 
+        to_flag.mask, biggest_dtv_gap = do_dtv_flagging2(to_flag, freqs) 
         
         data.mask = to_flag.mask
         
     # Make sure all Nan are masked
     data.mask = np.logical_or(data.mask, np.isnan(data))
     
-    return data
+    return data, biggest_dtv_gap
