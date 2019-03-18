@@ -28,10 +28,15 @@ class LST_Timing(object):
 
     night_lsts = []      # night
 
+    # This is the loop that checks every LST to see if the sun/galaxy is up/down
+    # and to apply the LST 11:12 restriction.
     for i, d in enumerate(self.utcs):
       ovro.date = d
       sun.compute(ovro)
       gal_center.compute(ovro)
+
+
+      # This is the big test - all the criteria
       if sun.alt < params.sun_down*np.pi/180 and gal_center.alt < params.galaxy_down*np.pi/180 \
 		and params.night_start <= self.lsts[i] and self.lsts[i] <= params.night_end:
         night_lsts.append(i)
@@ -47,10 +52,10 @@ class LST_Timing(object):
       bottom = max(0, night_lsts[0]-window)
       top = min(len(self.lsts), night_lsts[-1]+window)
 
-      return bottom, night_lsts[0], night_lsts[-1], top
+      return bottom, night_lsts[0], night_lsts[-1], top		# These are indexes into the data 
 
    
-  def align(self, data):   # Not working
+  def align(self, data):   # This is not working
     num_lsts_in_day = (24*60*60)/15
     thirteen_seconds = 13.0/60/60		# As decimal number 0...24
     fifteen_seconds = 15.0/60/60

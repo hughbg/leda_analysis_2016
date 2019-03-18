@@ -374,16 +374,9 @@ def do_dtv_flagging2(data, freqs):
                  mask[b+1,band] |= True
                  
     dtv_times = sorted(dtv_times)
-    gap = -1
-    where_gap = (-1, -1)
-    for i in range(1, len(dtv_times)):
-      this_gap = dtv_times[i]-dtv_times[i-1]
-      if this_gap > gap:
-        gap = this_gap
-        where_gap = (dtv_times[i], dtv_times[i-1])
 
     data.mask = mask*1
-    return data.mask, where_gap
+    return data.mask, list(set(dtv_times))		# Because there may be duplicates in dtv_times
 
 
 @check_mask
@@ -438,6 +431,7 @@ def rfi_flag(data, freqs=None):
         
         data.mask = to_flag.mask
         
+    dtv_times = []
     if params.do_dtv_flagging and freqs is not None:
         try:
             to_flag
@@ -445,11 +439,11 @@ def rfi_flag(data, freqs=None):
             bpass = estimate_bandpass(data)
             to_flag = data / bpass
             
-        to_flag.mask, biggest_dtv_gap = do_dtv_flagging2(to_flag, freqs) 
+        to_flag.mask, dtv_times = do_dtv_flagging2(to_flag, freqs) 
         
         data.mask = to_flag.mask
         
     # Make sure all Nan are masked
     data.mask = np.logical_or(data.mask, np.isnan(data))
     
-    return data, biggest_dtv_gap
+    return data, dtv_times

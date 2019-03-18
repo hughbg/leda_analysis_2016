@@ -8,8 +8,9 @@ Plot data as calibrated waterfall plot.
 import os
 import hickle
 import numpy as np
-#from matplotlib import use as muse; muse('Agg')
-from mpl_toolkits.mplot3d import Axes3D
+import sys
+if "--no_show" in sys.argv: 
+  from matplotlib import use as muse; muse('Agg')
 from matplotlib import cm
 import seaborn as sns
 import tables as tb
@@ -18,7 +19,7 @@ from scipy.stats import scoreatpercentile as percentile
 from leda_cal.skymodel import *
 from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
-from leda_cal.useful import add_uncertainties
+from leda_cal.useful import add_uncertainties, ensure_mask
 from leda_cal import robust
 from leda_cal.git import get_repo_fingerprint
 from leda_cal.params import params
@@ -27,6 +28,40 @@ from leda_cal import lst_timing
 sns.set_style('white')
 sns.set_context("poster",font_scale=.75)
 
+REQUIRED = 2400		# channels. Pad if necessary.
+
+def biggest_gap(times):	# times must be sorted
+    gap = -1
+    where_gap = (-1, -1)
+    for i in range(1, len(times)):
+      this_gap = times[i]-times[i-1]
+      if this_gap > gap:
+        gap = this_gap
+        where_gap = (times[i], times[i-1])
+    return where_gap
+
+def pad_data(data):
+
+
+  if data.shape[1] == REQUIRED: return data
+
+  missing = REQUIRED-data.shape[1]
+  if missing > 0:
+    pad = np.ma.masked_all((data.shape[0], missing))
+    new_data = np.ma.concatenate((ensure_mask(data), pad), axis=1)
+
+  return new_data
+
+def pad_frequencies(frequencies):
+
+  last_index = len(frequencies)-1
+  last_val = frequencies[-1]
+  chan_width = (frequencies[-1]-frequencies[0])/len(frequencies-1)
+  frequencies = np.append(frequencies, np.zeros(REQUIRED-len(frequencies)))
+  for i in range(last_index+1, len(frequencies)):
+     frequencies[i] = last_val+(i-last_index)*chan_width
+
+  return frequencies
 
 
 def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new_cal, sky=False, lfsm=False, emp=False):
@@ -39,11 +74,11 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
     ant_ids = ['252', '254', '255']
     
     print("Plotting...")
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(20,20))
     #plt.suptitle(h5.filename)
     
     lst_stamps = T_ant['lst']
-
+    indexes = np.arange(len(lst_stamps), dtype=np.int)
 
     if len(lst_stamps) == 0:
         raise RuntimeError("No LSTs in file")
@@ -80,6 +115,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
         raise RuntimeError("No LSTs available at night time (use --all_lsts to see all)")
       lst_stamps = lst_stamps[night_bottom:night_top]
       utc_stamps = utc_stamps[night_bottom:night_top]
+      indexes = indexes[night_bottom:night_top]
       padding = padding[night_bottom:night_top]
       ylims = ( lst_stamps[0], lst_stamps[-1] )
       print len(lst_stamps), "usable LSTs"
@@ -123,6 +159,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
         T_y_asm = sy.generate_tsky(lst_stamps, f_leda*1e6)
         T_x_asm = sx.generate_tsky(lst_stamps, f_leda*1e6)
 
+    dtv_times = {}
     if flag and merge:
         # If we are going to merge the flags across antennas, we need to flag them all now
         for p in (0, 1):
@@ -130,11 +167,18 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 ant = key+("B" if p else "A")
                 T_flagged = T_ant[ant]
                 if not all_lsts: 
-		  new_mask = rfi_flag(T_flagged[border_bottom:border_top], freqs=f_leda)[0].mask	# Do flagging with a border around the data in time
+		  # Do flagging with a border around the data in time
+		  flagged, dtv_tms = rfi_flag(T_flagged[border_bottom:border_top], freqs=f_leda)
+		  new_mask = flagged.mask	
+		  
                   new_mask = new_mask[night_bottom-border_bottom:night_top-border_bottom]		# remove border
+   	          dtv_times[ant] = [ x-(night_bottom-border_bottom) for x in dtv_tms ]
+		  dtv_times[ant] = [ x for x in dtv_times[ant] if 0 <= x and x < night_top-night_bottom ] 		# Some might have been in the border
 		else:
-                  new_mask, biggest_dtv_gap = rfi_flag(T_flagged, freqs=f_leda).mask
-		  print ant, "Biggest DTV gap", lst_stamps[biggest_dtv_gap[1]], "-", lst_stamps[biggest_dtv_gap[0]], "waterfall"
+		  flagged, tms = rfi_flag(T_flagged, freqs=f_leda)
+                  new_mask = flagged.mask
+		  dtv_times[ant] = tms
+		  print ant, "Biggest DTV gap", lst_stamps[biggest_gap(dtv_tms)[1]], "-", lst_stamps[biggest_gap(dtv_tms)[0]], "waterfall"
                 try:
                     merged_mask |= new_mask
                 except NameError:
@@ -157,8 +201,10 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
             if not all_lsts:
                 T_flagged = T_flagged[night_bottom:night_top]
                 
+
             print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
             
+	    dtv_times[ant] = []
             if flag:
                 if merge:
                     ## Already done
@@ -167,11 +213,15 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                     ## Need to do it now - there's probably a way to deal with 
                     ## this all in one pass
 		    if not all_lsts:
-		      T_flagged = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)[0]
+		      flagged, dtv_tms = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)
+		      T_flagged = flagged
 		      T_flagged = T_flagged[night_bottom-border_bottom:night_top-border_bottom]	# Remove border
+		      dtv_times[ant] = [ x-(night_bottom-border_bottom) for x in dtv_tms ]
+		      dtv_times[ant] = [ x for x in dtv_times[ant] if 0 <= x and x < night_top-night_bottom ] 		# Some might have been in the border
 		    else: 
-                      T_flagged, biggest_dtv_gap = rfi_flag(T_flagged, freqs=f_leda)
-		      print ant, "Biggest DTV gap", lst_stamps[biggest_dtv_gap[1]], "-", lst_stamps[biggest_dtv_gap[0]], "waterfall"
+                      T_flagged, dtv_tms = rfi_flag(T_flagged, freqs=f_leda)
+		      dtv_times[ant] = dtv_tms
+		      print ant, "Biggest DTV gap", lst_stamps[biggest_gap(dtv_tms)[1]], "-", lst_stamps[biggest_gap(dtv_tms)[0]], "waterfall"
                 print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
                 
             try:
@@ -180,13 +230,16 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 T_flagged = T_flagged - T_asm / scale_offset_asm
             except NameError:
                 pass
-                
+
+	    T_flagged = pad_data(T_flagged)		# Up to 2400 channels
+
             if dump: 
                 dump_data[ant] = T_flagged
                 dump_data[ant+"_rms"] = add_uncertainties(T_flagged)
                 av = np.ma.average(T_flagged,axis=0)
                 weighted = av/dump_data[ant+"_rms"]**2
-                dump_data[ant+"_weighted"] = weighted       
+                dump_data[ant+"_weighted"] = weighted    
+	        dump_data[ant+"_dtv_times"] = np.array(dtv_times[ant], dtype=np.int) 
                 
             if flag:
                 total = T_flagged.shape[0]*T_flagged.shape[1]
@@ -221,7 +274,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 clim = (1000, 10000)
 
             im = ax.imshow(T_flagged_plot, # / np.median(xx, axis=0), 
-                           cmap='jet', aspect='auto',
+                           cmap="viridis", aspect='auto',
                            interpolation='nearest',
                            clim=clim,
                            extent=(xlims[0], new_x_high, ylims[1], ylims[0]))
@@ -260,13 +313,14 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
     if dump:
         dump_data["lsts"] = lst_stamps
         dump_data["utcs"] = np.array([str(pytime) for pytime in utc_stamps])
-        dump_data["frequencies"] = f_leda
+        dump_data["indexes"] = indexes
+        dump_data["frequencies"] = pad_frequencies(f_leda)
         dump_data["options"] = "Flag="+str(flag) \
 			       + " Filename="+filename \
 			       + " New cal="+str(new_cal) \
                                + " Merge="+str(merge) \
                                + " Flatten="+str(flatten) \
-                               + " All LSTSs="+str(all_lsts) \
+                               + " All LSTs="+str(all_lsts) \
                                + " Sky Model Substract="+str(sky) \
                                + " Use LFSM="+str(lfsm) \
                                + " Apply empirical gain correction="+str(emp)
@@ -279,7 +333,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
 
 
 if __name__ == "__main__":
-    import optparse, sys
+    import optparse
 
     usage = '%prog [opts] filename_of_hdf5_observation'
     o = optparse.OptionParser()

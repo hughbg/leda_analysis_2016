@@ -12,7 +12,7 @@ from leda_cal.leda_cal import *
 from leda_cal.dpflgr import *
 import scipy.stats
 import scipy.ndimage.filters
-from leda_cal.useful import statistics
+from leda_cal.useful import statistics, ensure_mask
 from leda_cal.params import params
 from leda_cal import lst_timing
 
@@ -31,8 +31,32 @@ gal_center._ra  =  '17 45 40.04'
 gal_center._dec = '-29 00 28.1'
 gal_center.name = "Galactic Center"
 
+REQUIRED = 2400		# channels. Pad if necessary.
+
 def rms_filter(data):
     return np.std(data[np.logical_not(np.isnan(data))])  
+
+def biggest_gap(times):	# times must be sorted
+    gap = -1
+    where_gap = (-1, -1)
+    for i in range(1, len(times)):
+      this_gap = times[i]-times[i-1]
+      if this_gap > gap:
+        gap = this_gap
+        where_gap = (times[i], times[i-1])
+    return where_gap
+
+def pad_data(data):
+
+  if data.shape[1] == REQUIRED: return data
+
+  missing = REQUIRED-data.shape[1]
+  if missing > 0:
+    pad = np.ma.masked_all((data.shape[0], missing))
+    new_data = np.ma.concatenate((ensure_mask(data), pad), axis=1)
+
+  return new_data
+
 
 
 def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
@@ -42,9 +66,11 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
     if new_cal: T_ant = apply_new_calibration(h5)
     else: T_ant = apply_calibration(h5)
     f_leda = T_ant['f']
+
     lst_stamps = T_ant['lst']
     utc_stamps = T_ant['utc']
 
+    print "Start", lst_stamps[0], utc_stamps[0], lst_stamps[-1], utc_stamps[-1]
 
     
     # Report discontinuities in time
@@ -68,8 +94,8 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
     if len(lst_stamps) == 0:
         raise RuntimeError("There is no data to display (number of LSTs is 0)")
         
-    fits_header = fits_header.replace("XXXX", ( "%04d" % T_ant[ant].shape[1] ))
-    fits_header = fits_header.replace("YYYY", ( "%04d" % len(lst_stamps) ))
+    fits_header = fits_header.replace("XXXX", ( "%4d" % REQUIRED ))
+    fits_header = fits_header.replace("YYYY", ( "%4d" % len(lst_stamps) ))
 
     lst_diff = (str((lst_stamps[0]-lst_stamps[-1])/(len(lst_stamps)-1))+"0000000000")[:10]
     freq_diff = (str((f_leda[-1]-f_leda[0])/(len(f_leda)-1))+"0000000000")[:10]
@@ -91,8 +117,8 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
           print ant, ( "%.1f%%" % (100*float(total-num_in)/total) ), "flagged.", "Count:", total-num_in
 
 	else:
-          data, biggest_dtv_gap = rfi_flag(T_ant[ant], freqs=f_leda)
-	  print ant, "biggest DTV gap", lst_stamps[biggest_dtv_gap[1]], "-", lst_stamps[biggest_dtv_gap[0]]
+          data, dtv_tms = rfi_flag(T_ant[ant], freqs=f_leda)
+	  print ant, "Biggest DTV gap", lst_stamps[biggest_gap(dtv_tms)[1]], "-", lst_stamps[biggest_gap(dtv_tms)[0]]
 
     else:
         if not all_lsts:
@@ -125,6 +151,8 @@ def quicklook(filename, ant, flag, noise, no_show, all_lsts, new_cal):
         data = np.where(T_ant[ant]>top, higher, T_ant[ant])
         data = np.where(data<bottom, lower, data)
         
+    data = pad_data(data)		# pad out to 2400 channels
+
     data = np.ma.filled(data, 0)
     
     print "Creating", os.path.basename(filename)[:-3]+"_"+ant+".fits"

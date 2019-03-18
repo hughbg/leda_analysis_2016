@@ -31,8 +31,12 @@ class Params(object):
         """
 
         # For day/night selection
-        self.sun_down = -10		# In degrees. Below this they are down.
+        self.sun_down = -10		# In degrees. Below this they are down, otherwise up.
         self.galaxy_down = -10
+
+        self.night_start = 9	# LST
+        self.night_end = 14
+
 
         # Select flagging algorithms
         self.do_sum_threshold = True
@@ -52,9 +56,6 @@ class Params(object):
         self.scales = [1, 2, 4, 8, 16, 32, 64]
         self.median = False			# Use scipy median filter instead of bottleneck mean for sum threshold
 
-	# Hard thresholds on what night is
-        self.night_start = 11
-	self.night_end = 12
 
         # Parameters for flagging using sigma clipping
         self.sc_bp_window_f = self.st_bp_window_f			# Sliding windows in time and frequency
