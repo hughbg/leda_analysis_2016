@@ -172,8 +172,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
 		  new_mask = flagged.mask	
 		  
                   new_mask = new_mask[night_bottom-border_bottom:night_top-border_bottom]		# remove border
-   	          dtv_times[ant] = [ x-(night_bottom-border_bottom) for x in dtv_tms ]
-		  dtv_times[ant] = [ x for x in dtv_times[ant] if 0 <= x and x < night_top-night_bottom ] 		# Some might have been in the border
+   	          dtv_times[ant] = [ x+border_bottom for x in dtv_tms ]			# make them absolute indexes in the file
 		else:
 		  flagged, tms = rfi_flag(T_flagged, freqs=f_leda)
                   new_mask = flagged.mask
@@ -216,9 +215,8 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
 		      flagged, dtv_tms = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)
 		      T_flagged = flagged
 		      T_flagged = T_flagged[night_bottom-border_bottom:night_top-border_bottom]	# Remove border
-		      dtv_times[ant] = [ x-(night_bottom-border_bottom) for x in dtv_tms ]
-		      dtv_times[ant] = [ x for x in dtv_times[ant] if 0 <= x and x < night_top-night_bottom ] 		# Some might have been in the border
-		    else: 
+		      dtv_times[ant] = [ x+border_bottom for x in dtv_tms ]	
+  		    else: 
                       T_flagged, dtv_tms = rfi_flag(T_flagged, freqs=f_leda)
 		      dtv_times[ant] = dtv_tms
 		      print ant, "Biggest DTV gap", lst_stamps[biggest_gap(dtv_tms)[1]], "-", lst_stamps[biggest_gap(dtv_tms)[0]], "waterfall"

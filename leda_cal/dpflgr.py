@@ -370,14 +370,15 @@ def do_dtv_flagging2(data, freqs):
              mask[b,band] |= True
              if b > 1:
                  mask[b-1,band] |= True
+		 dtv_times.append(b-1)
              if b < data.shape[0]-2:
                  mask[b+1,band] |= True
+	         dtv_times.append(b+1)
                  
     dtv_times = sorted(dtv_times)
 
     data.mask = mask*1
-    return data.mask, list(set(dtv_times))		# Because there may be duplicates in dtv_times
-
+    return data.mask, list(set(dtv_times))		
 
 @check_mask
 def rfi_flag(data, freqs=None):
