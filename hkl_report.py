@@ -10,7 +10,11 @@ def report_hkl(data):
     print "Items present:"
     for key in sorted(data.keys()): 
         try:
-            if len(data[key].shape) == 1:
+            if key[-6:] == "_masks":
+              for mkey in data[key].keys():
+                print "  ", mkey, data[key][mkey].shape, type(data[key][mkey]), type(data[key][mkey][0, 0]), np.sum(data[key][mkey])
+
+            elif len(data[key].shape) == 1:
                 print "Key", '"'+key+'"', "Type", type(data[key]), "Element Type", type(data[key][0]), "Shape", data[key].shape
             else:
                 print "Key", '"'+key+'"', "Type", type(data[key]), "Element Type", type(data[key][0][0]), "Shape", data[key].shape, "(time, chan)"
