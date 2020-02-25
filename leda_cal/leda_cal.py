@@ -271,6 +271,7 @@ def apply_new_calibration(h5):
     a252y = np.zeros_like(a252x)
     a254x = calibrate(np.concatenate((h5.root.data.cols.ant254_x[:], pad), axis=1), h_254x)
     a255x = calibrate(np.concatenate((h5.root.data.cols.ant255_x[:], pad), axis=1), h_255x)
+    a255y = np.copy(a255x)
     a254y = calibrate(np.concatenate((h5.root.data.cols.ant254_y[:], pad), axis=1), h_254y)
     a255y = calibrate(np.concatenate((h5.root.data.cols.ant255_y[:], pad), axis=1), h_255y)
     

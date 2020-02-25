@@ -25,6 +25,55 @@ from params import params
 
 import robust
 
+# ----------------------------- Class Masks
+class Masks(object):
+  # Holds all different kinds of boolean flag masks and applies them to data
+
+  def __init__(self):
+    self.masks = {}	# Dictionary of masks
+    self.dtv_tms = []	# Record them but not really used like this
+
+  def add(self, name, mask):
+    self.masks[name] = np.copy(mask)
+
+  def report(self):
+    for key in self.masks.keys():
+      print key, self.masks[key].shape, type(self.masks[key]), type(self.masks[key][0, 0]), np.sum(self.masks[key])
+      
+
+  def save_to_files(self):
+    for key in self.masks.keys():
+      np.savetxt(key+".dat", self.masks[key])
+
+  def combine(self, do_not_excise_dtv=False):
+    keys = self.masks.keys()
+    if len(keys) > 0:
+      combined = np.copy(self.masks[keys[0]])
+      for key in keys[1:][::-1]:
+        if not ( do_not_excise_dtv and key == "dtv_times_mask" ):
+          combined |= self.masks[key]
+
+    return combined
+
+  def apply_as_nan(self, data, do_not_excise_dtv=False):
+    combined = self.combine(do_not_excise_dtv)
+    if data.shape != combined.shape: raise RuntimeError("data not same shape as mask in 'apply_as_nan' "+str(data.shape)+" "+str(combined.shape))
+    out = np.where(combined, np.nan, data)
+    return out
+
+  def apply_as_mask(self, data, do_not_excise_dtv=False):
+    combined = self.combine(do_not_excise_dtv)
+    if data.shape != combined.shape: raise RuntimeError("data not same shape as mask in 'apply_as_mask'. "+str(data.shape)+" "+str(combined.shape))
+    return np.ma.array(data, mask=combined)
+
+
+  def chop(self, a, b):	   # Chop a border
+    for key in self.masks.keys():    
+      self.masks[key] = self.masks[key][a: b]
+    self.dtv_tms = [ i-a for i in self.dtv_tms if i >= a and i < b ]
+
+# ----------------------------- END Masks
+
 def fit_poly(x, y, n=5, log=False):
     """ Fit a polynomial to x, y data 
     
@@ -405,7 +454,11 @@ def rfi_flag(data, freqs=None):
                         for a given integration    
     """
     
-    
+    masks = Masks()
+
+    # Record any nans
+    masks.add("nan_mask", np.isnan(data))
+
     if params.do_sum_threshold:
         try:
             to_flag
@@ -416,8 +469,8 @@ def rfi_flag(data, freqs=None):
         to_flag.mask = sum_threshold(to_flag)
         to_flag.mask = flag_fraction(to_flag)
         to_flag.mask = flag_window(to_flag)
-        
-        data.mask = to_flag.mask
+
+        masks.add("sum_threshold_mask", to_flag.mask)
         
     if params.do_sigma_clip:
         try:
@@ -429,10 +482,9 @@ def rfi_flag(data, freqs=None):
         to_flag.mask = clip2(to_flag)
         to_flag.mask = flag_fraction(to_flag)
         to_flag.mask = flag_window(to_flag)
-        
-        data.mask = to_flag.mask
-        
-    dtv_times = []
+
+        masks.add("clip_mask", to_flag.mask)
+       
     if params.do_dtv_flagging and freqs is not None:
         try:
             to_flag
@@ -441,10 +493,14 @@ def rfi_flag(data, freqs=None):
             to_flag = data / bpass
             
         to_flag.mask, dtv_times = do_dtv_flagging2(to_flag, freqs) 
+
+        masks.add("dtv_mask", to_flag.mask)
+
+        dtv_times_mask = np.zeros_like(data, dtype=np.bool)
+        dtv_times_mask[dtv_times] = True	
+	masks.add("dtv_times_mask", dtv_times_mask)
+        masks.dtv_tms = dtv_times
         
-        data.mask = to_flag.mask
-        
-    # Make sure all Nan are masked
-    data.mask = np.logical_or(data.mask, np.isnan(data))
-    
-    return data, dtv_times
+
+    return masks
+

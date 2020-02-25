@@ -159,7 +159,6 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
         T_y_asm = sy.generate_tsky(lst_stamps, f_leda*1e6)
         T_x_asm = sx.generate_tsky(lst_stamps, f_leda*1e6)
 
-    dtv_times = {}
     if flag and merge:
         # If we are going to merge the flags across antennas, we need to flag them all now
         for p in (0, 1):
@@ -168,16 +167,15 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 T_flagged = T_ant[ant]
                 if not all_lsts: 
 		  # Do flagging with a border around the data in time
-		  flagged, dtv_tms = rfi_flag(T_flagged[border_bottom:border_top], freqs=f_leda)
-		  new_mask = flagged.mask	
+		  masks = rfi_flag(T_flagged[border_bottom:border_top], freqs=f_leda)
+		  new_mask = masks.combine(do_not_excise_dtv=True)	
 		  
                   new_mask = new_mask[night_bottom-border_bottom:night_top-border_bottom]		# remove border
-   	          dtv_times[ant] = [ x+border_bottom for x in dtv_tms ]			# make them absolute indexes in the file
-		else:
-		  flagged, tms = rfi_flag(T_flagged, freqs=f_leda)
-                  new_mask = flagged.mask
-		  dtv_times[ant] = tms
-		  print ant, "Biggest DTV gap", lst_stamps[biggest_gap(dtv_tms)[1]], "-", lst_stamps[biggest_gap(dtv_tms)[0]], "waterfall"
+ 		else:
+		  masks = rfi_flag(T_flagged, freqs=f_leda)
+                  new_mask = masks.combine(do_not_excise_dtv=True)
+
+		  print ant, "Biggest DTV gap", lst_stamps[biggest_gap(masks.dtv_tms)[1]], "-", lst_stamps[biggest_gap(masks.dtv_tms)[0]], "waterfall"
                 try:
                     merged_mask |= new_mask
                 except NameError:
@@ -203,7 +201,7 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
 
             print "Max", np.max(T_flagged), "Min", np.min(T_flagged)
             
-	    dtv_times[ant] = []
+	    masks = {}
             if flag:
                 if merge:
                     ## Already done
@@ -212,14 +210,16 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                     ## Need to do it now - there's probably a way to deal with 
                     ## this all in one pass
 		    if not all_lsts:
-		      flagged, dtv_tms = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)
-		      T_flagged = flagged
+		      masks = rfi_flag(T_ant[ant][border_bottom:border_top], freqs=f_leda)
+		      T_flagged = masks.apply_as_mask(T_ant[ant][border_bottom:border_top], do_not_excise_dtv=True)
 		      T_flagged = T_flagged[night_bottom-border_bottom:night_top-border_bottom]	# Remove border
-		      dtv_times[ant] = [ x+border_bottom for x in dtv_tms ]	
+		      
+		      masks.chop(night_bottom-border_bottom, night_top-border_bottom)	
   		    else: 
-                      T_flagged, dtv_tms = rfi_flag(T_flagged, freqs=f_leda)
-		      dtv_times[ant] = dtv_tms
-		      print ant, "Biggest DTV gap", lst_stamps[biggest_gap(dtv_tms)[1]], "-", lst_stamps[biggest_gap(dtv_tms)[0]], "waterfall"
+                      masks = rfi_flag(T_flagged, freqs=f_leda)
+		      T_flagged = masks.apply_as_mask(T_flagged, do_not_excise_dtv=True)
+
+		      print ant, "Biggest DTV gap", lst_stamps[biggest_gap(masks.dtv_tms)[1]], "-", lst_stamps[biggest_gap(masks.dtv_tms)[0]], "waterfall"
                 print "After flagging", "Max", np.ma.max(T_flagged), "Min", np.ma.min(T_flagged)
                 
             try:
@@ -232,12 +232,22 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
 	    T_flagged = pad_data(T_flagged)		# Up to 2400 channels
 
             if dump: 
-                dump_data[ant] = T_flagged
+                if not all_lsts: 
+                  if masks: 
+                    dump_data[ant+"_flagged"] = masks.apply_as_nan(T_ant[ant][night_bottom:night_top])
+
+                  dump_data[ant] = T_ant[ant][night_bottom:night_top]
+	        else:
+                  if masks:      
+                    dump_data[ant+"_flagged"] = masks.apply_as_nan(T_ant[ant])
+                  dump_data[ant] = T_ant[ant]
                 dump_data[ant+"_rms"] = add_uncertainties(T_flagged)
                 av = np.ma.average(T_flagged,axis=0)
                 weighted = av/dump_data[ant+"_rms"]**2
                 dump_data[ant+"_weighted"] = weighted    
-	        dump_data[ant+"_dtv_times"] = np.array(dtv_times[ant], dtype=np.int) 
+                if masks:
+        	  dump_data[ant+"_dtv_times"] = np.array(masks.dtv_tms)
+	          dump_data[ant+"_masks"] = masks.masks
                 
             if flag:
                 total = T_flagged.shape[0]*T_flagged.shape[1]
@@ -270,13 +280,13 @@ def quicklook(filename, save, dump, flag, merge, flatten, no_show, all_lsts, new
                 clim = (-250, 500)
             else:
                 clim = (1000, 10000)
-
-            im = ax.imshow(T_flagged_plot, # / np.median(xx, axis=0), 
+	    if ant != "252B":
+              im = ax.imshow(T_flagged_plot, # / np.median(xx, axis=0), 
                            cmap="viridis", aspect='auto',
                            interpolation='nearest',
                            clim=clim,
                            extent=(xlims[0], new_x_high, ylims[1], ylims[0]))
-            
+
             ax.set_title(ant)
             if p == 1:
                 ax.set_xlabel("Frequency [MHz]")
