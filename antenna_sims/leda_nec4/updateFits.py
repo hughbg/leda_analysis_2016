@@ -18,7 +18,7 @@ def usage(exitCode=None):
 been computed.
 
 -f, --force               Force compting all fits even if the NPZ file exists
--e, --emperical           Compute only the emperical fits           
+-e, --empirical           Compute only the empirical fits           
 -s, --spherical           Compute only the spherical harmonic fits
 """
     
@@ -37,7 +37,7 @@ def parseOptions(args):
     
     # Read in and process the command line flags
     try:
-        opts, args = getopt.getopt(args, "hfes", ["help", "force", "emperical", "spherical"])
+        opts, args = getopt.getopt(args, "hfes", ["help", "force", "empirical", "spherical"])
     except getopt.GetoptError, err:
         # Print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -49,7 +49,7 @@ def parseOptions(args):
             usage(exitCode=0)
         elif opt in  ('-f', '--force'):
             config['force'] = True
-        elif opt in ('-e', '--emperical'):
+        elif opt in ('-e', '--empirical'):
             config['sph'] = False
         elif opt in ('-s', '--spherical'):
             config['emp'] = False
@@ -107,7 +107,7 @@ def main(args):
                 exitStatus = os.system('fitSph.py %i' % freq)
                 nSph += 1
                 
-    print "Ran %i emperical fits and %i spherical fits" % (nEmp, nSph)
+    print "Ran %i empirical fits and %i spherical fits" % (nEmp, nSph)
 
 
 if __name__ == "__main__":
